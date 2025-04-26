@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Dashboard</title>
+    <!-- Google Fonts - Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboardlaboratory.css') }}">
+</head>
+<body>
+    <!-- Sidebar -->
+<div class="sidebar">
+    <!-- Logo Section -->
+    <div class="logo-container">
+        <div class="logo-wrapper">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <img src="{{ url_for('static', filename='images/black-logo-removebg-preview.png') }}" alt="Logo" class="full-logo">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" class="mini-logo">
+            </a>
+            <!-- <button class="sidebar-toggle">
+                <i class="fas fa-chevron-left"></i>
+            </button> -->
+        </div>
+    </div>
+    <!-- Navigation Links -->
+    <ul class="nav-links">
+        <li class="active">
+            <a href="#" data-section="dashboard">
+                <i class="fas fa-desktop"></i>
+                <span class="nav-text">Dashboard</span>
+            </a>
+        </li>
+        <li class="has-submenu">
+            <a href="#" data-section="book-appointments">
+                <i class="fas fa-calendar-check"></i>
+                <span class="nav-text">Book Appointments</span>
+                <i class="fas fa-chevron-right submenu-arrow"></i>
+            </a>
+        </li>
+        <li class="has-submenu">
+            <a href="#" data-section="view-appointments">
+                <i class="fas fa-calendar-check"></i>
+                <span class="nav-text">View Appointments</span>
+                <i class="fas fa-chevron-right submenu-arrow"></i>
+            </a>
+        </li>
+        <li class="has-submenu">
+            <a href="#" data-section="completed-appointments">
+                <i class="fas fa-check-circle"></i>
+                <span class="nav-text">Completed Appoint</span>
+                <i class="fas fa-chevron-right submenu-arrow"></i>
+            </a>
+        </li>
+        <li>
+            <a href="#" data-section="history">
+                <i class="fas fa-history"></i>
+                <span class="nav-text">History</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<!-- Main Content -->
+<div class="main-content">
+    <header class="main-header">
+        <div class="header-left">
+            <button class="sidebar-toggle">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        </div>
+        <div class="header-right">
+            <button class="header-icon-btn fullscreen-toggle">
+                <i class="fas fa-expand"></i>
+            </button>
+            <div class="notification-wrapper">
+                <button class="header-icon-btn notification-btn">
+                <i class="fas fa-bell"></i>
+                <span class="notification-badge">5</span>
+            </button>
+                <div class="notification-dropdown">
+                    <div class="notification-header">
+                        <h3>Notifications</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="user-profile-wrapper" onclick="toggleProfileDropdown(event)">
+                <div class="user-profile">
+                    <img src="images/doctor.jpg" onerror="this.onerror=null; this.src='images/default-user.png';" alt="User profile" />
+                    <div class="user-info">
+                        <span class="user-name" id="labDisplayName">DefaultName</span> 
+                        <span class="user-role">Patient</span>
+                    </div>                    
+                    <div class="profile-dropdown">
+                        <a href="updateProfileModal" class="profile-menu-item" onclick="openUpdateModal(event)">
+                            <i class="fas fa-user-edit"></i>
+                            Update Profile
+                        </a>
+                        <div class="menu-divider"></div>
+                        <a href="loginpatient.html" class="profile-menu-item">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header> 
+
+
+    <!-- Dashboard Content -->
+    <div class="dashboard-content" id="dashboard-section">
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <div class="welcome-text">
+                <h1>Welcome back, <span class="patient-name" id="patientDisplayName"></span></h1>
+                <p class="welcome-message">Here's everything you need to stay on top of your health</p>
+            </div>
+        </div>
+        <br><br>
+        <!-- Stats Cards
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon pending">
+                    <i class="fas fa-flask"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Pending Tests</h3>
+                    <p class="stat-number">24</p>
+                    <span class="stat-change increase">+5 today</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon completed">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Completed Tests</h3>
+                    <p class="stat-number">156</p>
+                    <span class="stat-change increase">+12 today</span>
+                </div>
+            </div>
+        </div> -->
+    </div>
+
+    <!-- Book Appointments Section -->
+    <div class="dashboard-content" id="book-appointments-section" style="display: none;">
+        <div class="section-header">
+            <h2>Book New Appointment</h2>
+        </div>
+        <div class="appointment-form-container">
+            <form id="bookAppointmentForm" class="appointment-form">
+                <div class="form-group">
+                    <label for="doctorSelect">
+                        <i class="fas fa-user-md"></i> Select Doctor
+                    </label>
+                    <select id="doctorSelect" class="form-control" required>
+                        <option value="">-- Select Doctor --</option>
+                        <option value="dr1">Dr. DJILALI - General Medicine</option>
+                        <option value="dr2">Dr. MARWA - Cardiology</option>
+                        <option value="dr3">Dr. DOUAA - Pediatrics</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="appointmentDate">
+                        <i class="fas fa-calendar"></i> Date
+                    </label>
+                    <input type="date" id="appointmentDate" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="appointmentTime">
+                        <i class="fas fa-clock"></i> Time
+                    </label>
+                    <input type="time" id="appointmentTime" class="form-control" required>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="clearForm()">
+                        <i class="fas fa-times"></i> Clear Form
+                    </button>
+                    <button type="submit" class="btn-submit">
+                        <i class="fas fa-calendar-check"></i> Book Appointment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Appointments Section -->
+    <div class="dashboard-content" id="view-appointments-section" style="display: none;">
+        <div class="section-header">
+            <h2>Your Appointments</h2>
+            <p>View and manage your upcoming appointments</p>
+        </div>
+        <div class="appointments-table-container">
+            <table class="appointments-table">
+                <thead>
+                    <tr>
+                        <th>Doctor</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="appointmentsBody">
+                    <!-- Appointments will be added here dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+    <!-- Update Profile Modal -->
+    <div id="updateProfileModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; opacity: 0; transition: opacity 0.3s ease; overflow-y: auto;">
+        <div style="background: white; width: 90%; max-width: 500px; margin: 50px auto; padding: 20px; border-radius: 8px; position: relative; transform: translateY(-20px); transition: transform 0.3s ease;">
+            <span onclick="closeUpdateModal()" style="position: absolute; right: 20px; top: 10px; font-size: 24px; cursor: pointer; color: #666;">&times;</span>
+            
+            <h2 style="margin-bottom: 20px; color: #1a73e8; text-align: center;">Update patient Profile</h2>
+            
+            <form id="updateProfileForm" onsubmit="return false;">
+                <div style="margin-bottom: 25px; text-align: center;">
+                    <img src="images/doctor.jpg" alt="doctor Logo" id="modalProfileImage" style="width: 120px; height: 120px; border-radius: 50%; margin-bottom: 10px; object-fit: cover; border: 3px solid #1a73e8;" onerror="this.src='images/default-user.png'">
+                    <label for="profilePic" style="display: inline-block; padding: 8px 15px; background: #f1f3f4; border-radius: 4px; cursor: pointer; color: #1a73e8;">
+                        <i class="fas fa-camera"></i> Update Profile Picture
+                    </label>
+                    <input type="file" id="profilePic" accept="image/*" style="display: none;" onchange="handleProfileImageChange(event)">
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #5f6368;">
+                        <i class="fas fa-user"></i> Full Name
+                    </label>
+                    <input id="labNameInput" type="text" class="form-control" required>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #5f6368;">
+                        <i class="fas fa-envelope"></i> Email
+                    </label>
+                    <input id="emailInput" type="email" class="form-control" required>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #5f6368;">
+                        <i class="fas fa-phone"></i> Phone Number
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/7/77/Flag_of_Algeria.svg" alt="DZ" style="width: 24px; height: auto;">
+                            <span>+213</span>
+                        </span>
+                        <input id="phoneInput" type="tel" class="form-control" placeholder="0 00 00 00 00" required pattern="[0-9\s+]+" inputmode="tel">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #5f6368;">
+                        <i class="fas fa-venus-mars"></i> Gender
+                    </label>
+                    <div>
+                        <input type="radio" id="maleInput" name="gender" value="male">
+                        <label for="maleInput">Male</label>
+                        <input type="radio" id="femaleInput" name="gender" value="female">
+                        <label for="femaleInput">Female</label>
+                    </div>
+                </div>
+
+                <div style="text-align: right; margin-top: 25px;">
+                    <button type="button" onclick="closeUpdateModal()" style="padding: 12px 24px; margin-right: 10px; border: 1px solid #dadce0; background: white; border-radius: 4px; cursor: pointer; color: #5f6368; transition: background-color 0.3s;">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="button" onclick="saveProfile()" style="padding: 12px 24px; background: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s;">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmation Popup -->
+    <div id="appointmentConfirmationPopup" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="background: white; width: 90%; max-width: 500px; margin: 50px auto; padding: 20px; border-radius: 8px; position: relative;">
+            <span onclick="closeConfirmationPopup()" style="position: absolute; right: 20px; top: 10px; font-size: 24px; cursor: pointer; color: #666;">&times;</span>
+            
+            <h2 style="margin-bottom: 20px; color: #1a73e8; text-align: center;">Confirm Your Appointment</h2>
+            
+            <div class="appointment-details" style="margin-bottom: 20px;">
+                <div style="margin-bottom: 10px;">
+                    <strong>Doctor:</strong> <span id="confirmDoctor"></span>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <strong>Date:</strong> <span id="confirmDate"></span>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <strong>Time:</strong> <span id="confirmTime"></span>
+                </div>
+            </div>
+
+            <div style="text-align: right;">
+                <button onclick="closeConfirmationPopup()" style="padding: 10px 20px; margin-right: 10px; background: #f1f3f4; border: 1px solid #dadce0; border-radius: 4px; cursor: pointer;">
+                    Cancel
+                </button>
+                <button onclick="confirmAppointment()" style="padding: 10px 20px; background: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    Confirm Appointment
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboardpatient.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help & Support - NABDH</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styleindex.css') }}">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="navbar navbar-expand-sm fixed-top" id="navbar">
+            <div class="container">
+                <a class="navbar-brand" href="{{ url_for('index') }}">
+                    <img src="{{ url_for('static', filename='images/black-logo-removebg-preview.png') }}" alt="Logo-black">
+                </a>
+                <div class="collapse navbar-collapse justify-content-center">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('index') }}">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('index') }}#Insights">Insights</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('index') }}#contact">Contact</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('index') }}#Help">Help</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="dropdown btn-dropdown">
+                    <button class="btn btn-custom dropdown-toggle" type="button" id="singleDropdownButton" data-bs-toggle="dropdown" aria-expanded="false">
+                        Sign in
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="singleDropdownButton">
+                        <li><a class="dropdown-item" href="{{ url_for('doctor_bp.login_page') }}">Doctor</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('patient_bp.login_page') }}">Patient</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('lab_staff_bp.login_page') }}">Laboratory</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="tips-header">
+        <img src="{{ url_for('static', filename='images/help.png') }}" alt="help Illustration">
+        <br>
+        <br>
+        <h1>Centre d'aide NABDH</h1>
+        </div>
+    </div>
+    <br>    
+    
+
+
+    <!-- Help Section -->
+    <section class="help-page">
+        <div class="container">
+
+            <!-- FAQ Section -->
+            <div class="faq-section">
+                <h2 class="text-center mb-4">Frequently Asked Questions</h2>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h4>How do I book an appointment?</h4>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>To book an appointment, log in to your account, choose book appoitment in your dashboard , select your preferred doctor,choose an available time slot, and confirm your booking.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h4>How can I access my medical records?</h4>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Your medical records are securely stored in your account. Log in and navigate to the "Medical Records" section to view or download your records.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h4>Is my personal information secure?</h4>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Yes, we use advanced encryption and security measures to protect your personal and medical information. All data is stored securely and only accessible to authorized personnel.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h4>How do I cancel or reschedule an appointment?</h4>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="faq-answer">
+                        <p>You can cancel or reschedule appointments through your account dashboard. Go to "My Appointments" and select the appointment you wish to modify.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Form -->
+            <div class="row mt-5">
+                <div class="col-md-6 offset-md-3">
+                    <div class="contact-form">
+                        <h2 class="text-center mb-4">Contact Us</h2>
+                        <form>
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Name</label>
+                                <input type="text" class="form-control" id="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="subject" class="form-label">Subject</label>
+                                <input type="text" class="form-control" id="subject" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="message" class="form-label">Message</label>
+                                <textarea class="form-control" id="message" rows="5" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-custom w-100">Send Message</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom d-flex justify-content-between">
+                <div class="logo-section">
+                    <img src="{{ url_for('static', filename='images/white-logo.png') }}" alt="Logo-white">
+                    <p>Access top healthcare professionals instantly.</p>
+                </div>
+                <div class="social-icons">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+            <hr>
+            <div class="text-left">
+                <p>© 2025 All rights reserved | Version 1</p>
+                <p>Created by <span>D.BENNACEUR & M.HAMAMMOUCHE</span></p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // FAQ Toggle
+        document.querySelectorAll('.faq-question').forEach(question => {
+            question.addEventListener('click', () => {
+                const answer = question.nextElementSibling;
+                const icon = question.querySelector('i');
+                
+                // Toggle answer visibility
+                answer.classList.toggle('show');
+                
+                // Rotate icon
+                icon.style.transform = answer.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0)';
+            });
+        });
+    </script>
+</body>
+</html>

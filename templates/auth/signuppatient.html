@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signup patients</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styleregist.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+
+
+</head>
+<body>
+      <!-- header -->
+
+
+       <!-- header section ended -->
+
+    <div class="main-container">
+        <a class="navbar-brand fixed-top" href="{{ url_for('index') }}">
+            <img src="{{ url_for('static', filename='images/white-logo.png') }}" alt="Logo">
+        </a>
+    <div class="left">
+        <p>
+            Join us for a healthier tomorrow!
+        </p>
+    </div>
+    <div class="right">
+    <div class="form-container">
+      <!-- <h2>New here ?</h2> -->
+      <h2>New in NABDH ?</h2>
+      <div class="progress-container">
+            <div class="progress-step active-step" id="step1">1</div>
+            <div class="progress-step" id="step2">2</div>
+            <div class="progress-step" id="step3">3</div>
+            <!-- <div class="progress-step" id="step4">4</div> -->
+
+        </div>
+        
+        <form id="signup-form">
+            <div id="section1">
+                <i class="fa fa-user"></i>
+                <label>Full name</label>
+                <input type="text" name="full_name" id="full_name" class="form-control" required>
+
+                <i class="fa fa-envelope"></i>
+                <label>E-mail</label>
+                <input type="email" name="email" id="email" class="form-control" placeholder="ex : nabdhhealth@gmail.com" required> 
+                
+                <i class="fa fa-phone"></i>
+                <label>Phone Number</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                      <img src="https://upload.wikimedia.org/wikipedia/commons/7/77/Flag_of_Algeria.svg" alt="DZ" style="width: 24px; height: auto;">
+                      <span>+213</span>
+                    </span>
+                    <input type="tel" 
+                           name="phone" 
+                           id="phone" 
+                           class="form-control" 
+                           placeholder="0 00 00 00 00" 
+                           required 
+                           pattern="[0-9 ]+" 
+                           minlength="12"
+                           maxlength="14"
+                           title="Please enter a valid phone number in the format: 0 XX XX XX XX">
+                </div>
+                  
+                <button type="button" class="btn btn-custom mt-3" onclick="nextStep(1)">Next</button>
+            </div>
+            
+            <div id="section2" class="hidden">
+                <i class="fa fa-calendar"></i>
+                <label>Date of birth</label>
+                <input type="date" name="birth_date" id="birth_date" class="form-control" required>
+
+                <i class="fa-solid fa-genderless"></i>
+                <label>Gender</label>
+                <div>
+                    <input type="radio" id="male" name="gender" value="male">
+                    <!-- <i class="fa fa-mars"></i> -->
+                    <label for="male">Male</label>
+                    <input type="radio" id="female" name="gender" value="female">
+                    <!-- <i class="fa fa-venus"></i> -->
+                    <label for="female">Female</label>
+                </div>
+        
+                <button type="button" class="btn btn-custom mt-3" onclick="prevStep(2)">Previous</button>
+                <button type="button" class="btn btn-custom mt-3" onclick="nextStep(2)">Next</button>
+                <p id="resend-msg" class="text-muted"></p>
+
+            </div>
+            <div id="section3" class="hidden">
+                <i class="fa fa-lock"></i>
+                <label>Password</label>
+                <input type="password" name="password" id="password" class="form-control" required>
+                
+                <i class="fa fa-lock"></i>
+                <label>Confirm Password</label>
+                <input type="password" name="confirm_password" id="confirm_password" class="form-control" required>
+                <div id="password-error" class="invalid-feedback" style="display: none;">
+                    Please make sure both passwords match.
+                </div>
+                <div id="signup-error" class="alert alert-danger mt-3" style="display: none;"></div>
+                <button type="button" class="btn btn-custom mt-3" onclick="prevStep(3)">Previous</button>
+                <button type="submit" class="btn btn-success mt-3" id="signup-button">
+                    <span class="button-text">Sign Up</span>
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                </button>
+            </div>
+            <!-- <div id="section4" class="hidden">
+                <i class="fa fa-key"></i>
+                <label>Enter the code received by E-mail</label>
+                <input type="text" name="verification_code" id="verification_code" class="form-control" required>
+                <button type="button" class="btn btn-custom mt-3" onclick="prevStep(4)">Previous</button>
+                <button type="submit" class="btn btn-success mt-3">Sign Up</button>
+            </div> -->
+            <p class="text-center">
+                Already have an account ?   <a href="{{ url_for('patient_bp.login_page') }}">Log in</a>
+              </p>
+              
+        </form>
+    </div>
+    </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/signup.js') }}"></script>
+    <script>
+        // Phone number formatting
+        const phoneInput = document.getElementById('phone');
+        if (phoneInput) {
+            phoneInput.addEventListener('input', function(e) {
+                // Remove any non-digit characters
+                let value = this.value.replace(/\D/g, '');
+                
+                // Ensure it starts with 0
+                if (value.length > 0 && value[0] !== '0') {
+                    value = '0' + value;
+                }
+                
+                // Limit to 10 digits
+                value = value.slice(0, 10);
+                
+                // Format as "0 XX XX XX XX"
+                if (value.length > 0) {
+                    value = value.match(new RegExp('.{1,2}', 'g')).join(' ');
+                }
+                
+                this.value = value;
+                
+                // Validate the input
+                const isValid = value.length === 14; // "0 XX XX XX XX" is 14 characters
+                this.setCustomValidity(isValid ? '' : 'Please enter a complete phone number');
+            });
+
+            // Validate on blur
+            phoneInput.addEventListener('blur', function() {
+                const value = this.value.trim();
+                const isValid = value.length === 14; // "0 XX XX XX XX" is 14 characters
+                this.setCustomValidity(isValid ? '' : 'Please enter a complete phone number');
+            });
+        }
+
+        // Date of birth validation
+        const birthDateInput = document.getElementById('birth_date');
+        if (birthDateInput) {
+            const today = new Date();
+            const maxDate = today.toISOString().split('T')[0];
+            const minDate = new Date(today.getFullYear() - 120, today.getMonth(), today.getDate()).toISOString().split('T')[0];
+            
+            birthDateInput.setAttribute('max', maxDate);
+            birthDateInput.setAttribute('min', minDate);
+        }
+    </script>
+
+
+</body>
+</html>

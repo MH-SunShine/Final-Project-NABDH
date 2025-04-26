@@ -1,1 +1,11 @@
-Flask~=3.1.0
+Flask~=3.1.0 # app framework
+Flask-SQLAlchemy # python orm: work with objects instead of sql code
+flask-marshmallow
+marshmallow-sqlalchemy
+Flask-JWT-Extended # secure endpoints
+psycopg2-binary
+bcrypt # password hashing
+twilio # used their api to send sms to users phone number
+Flask-CORS # enable CORS for API requests
+
+# waitress-serve --listen=127.0.0.1:8000 run:app
