@@ -1,174 +1,577 @@
 
+// Global variables
+let selectedDoctor = null;
+let selectedSlot = null;
+let calendar = null;
 
-// Doctor availability data (this would typically come from your backend)
-const doctorAvailability = {
-    'dr1': ['2024-03-20', '2024-03-22', '2024-03-25'],
-    'dr2': ['2024-03-21', '2024-03-23', '2024-03-26'],
-    'dr3': ['2024-03-24', '2024-03-27', '2024-03-28']
-};
+// Sample doctor data - in a real app, this would come from the backend
+const doctors = [
+    { 
+        id: 1, 
+        name: 'Dr. amira', 
+        specialty: 'Cardiologist', 
+        available: true,
+        email: "a@example.com",
+        phone: "+213"
+    },
+    { 
+        id: 2, 
+        name: 'Dr. fatima', 
+        specialty: 'Neurologist', 
+        available: true,
+        email: "a@example.com",
+        phone: "+213"
+    },
 
-// Form handling
-document.getElementById('doctorSelect').addEventListener('change', function() {
-    const selectedDoctor = this.value;
-    const dateInput = document.getElementById('appointmentDate');
+];
+
+// Initialize the form when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Load doctors
+    loadDoctors();
     
-    // Clear previous dates
-    dateInput.innerHTML = '';
+    // Initialize the calendar
+    initializeCalendar();
     
-    if (selectedDoctor && doctorAvailability[selectedDoctor]) {
-        // Enable date input
-        dateInput.disabled = false;
-        
-        // Set available dates
-        const availableDates = doctorAvailability[selectedDoctor];
-        dateInput.min = availableDates[0];
-        dateInput.max = availableDates[availableDates.length - 1];
-        
-        // Add event listener to validate selected date
-        dateInput.addEventListener('input', function() {
-            const selectedDate = this.value;
-            if (!availableDates.includes(selectedDate)) {
-                alert('Please select an available date for this doctor');
-                this.value = '';
-            }
-        });
-    } else {
-        // Disable date input if no doctor selected
-        dateInput.disabled = true;
-        dateInput.value = '';
-    }
-});
-
-document.getElementById('bookAppointmentForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    // Collect form data
-    const formData = {
-        doctor: document.getElementById('doctorSelect').value,
-        date: document.getElementById('appointmentDate').value,
-        time: document.getElementById('appointmentTime').value,
-    };
-
-    // Show confirmation popup instead of directly submitting
-    showConfirmationPopup(formData);
-});
-
-function clearForm() {
-    document.getElementById('bookAppointmentForm').reset();
-    document.getElementById('appointmentDate').disabled = true;
-}
-
-// Initialize form
-document.getElementById('appointmentDate').disabled = true;
-
-// Confirmation Popup
-function showConfirmationPopup(formData) {
-    // Fill confirmation popup with appointment details
-    document.getElementById('confirmDoctor').textContent = document.getElementById('doctorSelect').options[document.getElementById('doctorSelect').selectedIndex].text;
-    document.getElementById('confirmDate').textContent = formData.date;
-    document.getElementById('confirmTime').textContent = formData.time;
-
-    // Show popup
-    document.getElementById('appointmentConfirmationPopup').style.display = 'block';
-}
-
-function closeConfirmationPopup() {
-    document.getElementById('appointmentConfirmationPopup').style.display = 'none';
-}
-
-// Function to save appointment to localStorage
-function saveAppointment(appointment) {
-    let appointments = JSON.parse(localStorage.getItem('appointments')) || [];
-    appointments.push({
-        ...appointment,
-        id: Date.now(),
-        status: 'Pending'
+    // Set up event listeners
+    document.getElementById('nextToStep2').addEventListener('click', nextStep);
+    document.getElementById('nextToStep3').addEventListener('click', function() {
+        // Fill summary in Step 3
+        if (selectedDoctor && selectedSlot) {
+            document.getElementById('confirmDoctorName').textContent = selectedDoctor.name;
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('confirmDate').textContent = selectedSlot.start.toLocaleDateString('en-US', dateOptions);
+            document.getElementById('confirmTime').textContent = `${selectedSlot.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${selectedSlot.end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+        }
+        nextStep();
     });
-    localStorage.setItem('appointments', JSON.stringify(appointments));
-    displayAppointments();
+
+    // Back button in Step 3 returns to Step 2 and keeps previous selections
+    document.querySelector('#step3 .btn-back').addEventListener('click', function() {
+        steps.goTo(2);
+        // Re-populate date and time fields with previous selection
+        if (selectedSlot) {
+            document.getElementById('availableDate').value = selectedSlot.start.toISOString().split('T')[0];
+            const availableTimeSelect = document.getElementById('availableTime');
+            for (let opt of availableTimeSelect.options) {
+                if (opt.value.startsWith(selectedSlot.start.toISOString())) {
+                    availableTimeSelect.value = opt.value;
+                    break;
+                }
+            }
+        }
+    });
+
+    // Add click handlers for step navigation in the progress bar
+    document.querySelectorAll('.step').forEach(stepEl => {
+        stepEl.addEventListener('click', () => {
+            const step = parseInt(stepEl.getAttribute('data-step'));
+            steps.goTo(step);
+        });
+    });
+
+    // Doctor select event: only enable Next button, do not show doctor card
+    document.getElementById('doctorSelect').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (this.value) {
+            const doctor = JSON.parse(selectedOption.getAttribute('data-doctor'));
+            selectedDoctor = doctor;
+            document.getElementById('nextToStep2').disabled = false;
+        } else {
+            selectedDoctor = null;
+            document.getElementById('nextToStep2').disabled = true;
+        }
+    });
+
+    // When "Next" to Step 2 is clicked
+    document.getElementById('nextToStep2').addEventListener('click', function() {
+        if (selectedDoctor) {
+            document.getElementById('selectedDoctorName').textContent = selectedDoctor.name || '';
+            // Generate available slots for this doctor
+            const slots = generateAvailableSlots(selectedDoctor.id);
+            // Group slots by date
+            const dateMap = {};
+            slots.forEach(slot => {
+                const dateStr = slot.start.toISOString().split('T')[0];
+                if (!dateMap[dateStr]) dateMap[dateStr] = [];
+                dateMap[dateStr].push(slot);
+            });
+            // Populate date picker with only available dates
+            const availableDateInput = document.getElementById('availableDate');
+            availableDateInput.value = '';
+            availableDateInput.disabled = false;
+            availableDateInput.setAttribute('min', Object.keys(dateMap)[0] || '');
+            availableDateInput.setAttribute('max', Object.keys(dateMap).slice(-1)[0] || '');
+            // Remove previous event listener if any
+            availableDateInput.oninput = null;
+            // Disable and reset time dropdown
+            const availableTimeSelect = document.getElementById('availableTime');
+            availableTimeSelect.innerHTML = '<option value="">-- Select a Time --</option>';
+            availableTimeSelect.disabled = true;
+            document.getElementById('nextToStep3').disabled = true;
+
+            // Only allow picking available dates
+            availableDateInput.oninput = function() {
+                const selectedDate = this.value;
+                availableTimeSelect.innerHTML = '<option value="">-- Select a Time --</option>';
+                availableTimeSelect.disabled = true;
+                document.getElementById('nextToStep3').disabled = true;
+                if (dateMap[selectedDate]) {
+                    dateMap[selectedDate].forEach(slot => {
+                        const start = new Date(slot.start);
+                        const end = new Date(slot.end);
+                        const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')} - ${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
+                        const opt = document.createElement('option');
+                        opt.value = `${slot.start.toISOString()}|${slot.end.toISOString()}`;
+                        opt.textContent = timeStr;
+                        availableTimeSelect.appendChild(opt);
+                    });
+                    availableTimeSelect.disabled = false;
+                }
+            };
+
+            // Enable Next button only when a time is selected
+            availableTimeSelect.onchange = function() {
+                document.getElementById('nextToStep3').disabled = !this.value;
+                if (this.value) {
+                    const [startIso, endIso] = this.value.split('|');
+                    selectedSlot = {
+                        start: new Date(startIso),
+                        end: new Date(endIso)
+                    };
+                } else {
+                    selectedSlot = null;
+                }
+            };
+        }
+    });
+});
+
+// Load doctors into the select dropdown
+function loadDoctors() {
+    const doctorSelect = document.getElementById('doctorSelect');
+    
+    // Clear existing options except the first one
+    while (doctorSelect.options.length > 1) {
+        doctorSelect.remove(1);
+    }
+    
+    // Add doctors to the select dropdown
+    doctors.forEach(doctor => {
+        if (doctor.available) {
+            const option = document.createElement('option');
+            option.value = doctor.id;
+            option.textContent = `${doctor.name} - ${doctor.specialty}`;
+            option.setAttribute('data-doctor', JSON.stringify(doctor));
+            doctorSelect.appendChild(option);
+        }
+    });
 }
 
-// Function to display appointments in the table
-function displayAppointments() {
-    const appointments = JSON.parse(localStorage.getItem('appointments')) || [];
-    const tbody = document.getElementById('appointmentsBody');
-    tbody.innerHTML = '';
 
-    if (appointments.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5" style="text-align: center; padding: 20px;">
-                    <i class="fas fa-calendar-times" style="font-size: 24px; color: #ccc; margin-bottom: 10px;"></i>
-                    <p>No appointments booked yet</p>
-                </td>
-            </tr>
-        `;
+// Initialize FullCalendar with custom configuration
+function initializeCalendar() {
+    const calendarEl = document.getElementById('doctorCalendar');
+    if (!calendarEl) return;
+    
+    calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'timeGridWeek,timeGridDay'
+        },
+        slotMinTime: '08:00:00',
+        slotMaxTime: '18:00:00',
+        slotDuration: '00:30:00',
+        slotLabelInterval: '01:00:00',
+        slotLabelFormat: {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        },
+        allDaySlot: false,
+        weekends: false,
+        selectable: true,
+        selectOverlap: false,
+        selectMirror: true,
+        dayHeaderFormat: { 
+            weekday: 'short', 
+            month: 'short', 
+            day: 'numeric',
+            omitCommas: true 
+        },
+        eventTimeFormat: {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        },
+        selectAllow: function(selectInfo) {
+//             // Only allow selection of available slots
+            const events = calendar.getEvents();
+            return events.some(event => {
+                return selectInfo.start >= event.start && 
+                       selectInfo.end <= event.end &&
+                       event.extendedProps?.available === true;
+            });
+        },
+        select: handleDateSelect,
+        eventClick: handleEventClick,
+        events: [],
+        height: 'auto',
+        nowIndicator: true,
+        navLinks: true,
+        businessHours: {
+            daysOfWeek: [1, 2, 3, 4, 5], // Monday - Friday
+            startTime: '09:00',
+            endTime: '17:00'
+        },
+        validRange: {
+            start: new Date(),
+            end: new Date(new Date().getTime() + 14 * 24 * 60 * 60 * 1000) // 2 weeks
+        },
+        dayHeaderClassNames: 'fc-day-header-custom',
+        slotLabelClassNames: 'fc-timegrid-slot-label-custom',
+        dayCellClassNames: 'fc-day-custom',
+        eventClassNames: 'fc-event-custom'
+    });
+    
+    calendar.render();
+}
+
+
+// Handle date selection in calendar
+function handleDateSelect(selectInfo) {
+//     // Check if the selected slot is within available slots
+    const events = calendar.getEvents();
+    const isAvailable = events.some(event => {
+        return selectInfo.start >= event.start && 
+               selectInfo.end <= event.end &&
+               event.extendedProps?.available;
+    });
+    
+    if (!isAvailable) {
+        alert('Please select an available time slot.');
+        calendar.unselect();
         return;
     }
-
-    appointments.forEach(appointment => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${appointment.doctor}</td>
-            <td>${appointment.date}</td>
-            <td>${appointment.time}</td>
-            <td><span class="status-badge ${appointment.status.toLowerCase()}">${appointment.status}</span></td>
-            <td>
-                <button class="action-btn reschedule-btn" onclick="rescheduleAppointment(${appointment.id})">
-                    <i class="fas fa-calendar-alt"></i> Reschedule
-                </button>
-                <button class="action-btn cancel-btn" onclick="cancelAppointment(${appointment.id})">
-                    <i class="fas fa-times"></i> Cancel
-                </button>
-            </td>
-        `;
-        tbody.appendChild(row);
+    
+//     // Clear previous selection
+    if (window.selectedEvent) {
+        window.selectedEvent.remove();
+    }
+    
+//     // Create a new event for the selected slot
+    window.selectedEvent = calendar.addEvent({
+        title: 'Selected',
+        start: selectInfo.start,
+        end: selectInfo.end,
+        backgroundColor: '#1a73e8',
+        borderColor: '#1a73e8',
+        display: 'background',
+        classNames: ['selected-slot']
     });
+    
+    selectedSlot = selectInfo;
+    document.getElementById('nextToStep3').disabled = false;
+    
+//     // Update confirmation details
+     const start = new Date(selectInfo.start);
+    const end = new Date(selectInfo.end);
+    
+    document.getElementById('confirmDoctorName').textContent = selectedDoctor.name;
+    document.getElementById('confirmDate').textContent = start.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    document.getElementById('confirmTime').textContent = `${start.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    })} - ${end.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    })}`;
+    
+     // Close any open popovers
+    calendar.unselect();
 }
 
-// Function to cancel an appointment
-function cancelAppointment(id) {
-    let appointments = JSON.parse(localStorage.getItem('appointments')) || [];
-    appointments = appointments.map(app => {
-        if (app.id === id) {
-            return { ...app, status: 'Cancelled' };
+
+// Handle event click in calendar
+ function handleEventClick(clickInfo) {
+     // Handle event click if needed
+ }
+
+
+// Step management
+const steps = {
+    current: 1,
+    total: 3,
+    
+    // Validate if we can proceed to the next step
+    validateStep: function(step) {
+        const validations = {
+            1: () => {
+                if (!selectedDoctor) {
+                    alert('Please select a doctor before proceeding.');
+                    return false;
+                }
+                return true;
+            },
+            2: () => {
+                if (!selectedSlot) {
+                    alert('Please select an available time slot before proceeding.');
+                    return false;
+                }
+                return true;
+            }
+        };
+        return validations[step] ? validations[step]() : true;
+    },
+    
+    // Update the UI to show the current step
+    updateUI: function() {
+        // Hide all steps
+        document.querySelectorAll('.form-step').forEach(step => {
+            step.classList.remove('active');
+        });
+        
+        // Show current step
+        const currentStepEl = document.querySelector(`#step${this.current}`);
+        if (currentStepEl) currentStepEl.classList.add('active');
+        
+        // Update progress steps
+        document.querySelectorAll('.step').forEach((stepEl, index) => {
+            stepEl.classList.toggle('active', (index + 1) <= this.current);
+        });
+    },
+    
+    // Move to the next step
+    next: function() {
+        if (this.current >= this.total) return;
+        
+        if (this.validateStep(this.current)) {
+            this.current++;
+            this.updateUI();
+            
+            // Additional step-specific logic
+            if (this.current === 2 && selectedDoctor) {
+                loadDoctorAvailability(selectedDoctor.id);
+            }
         }
-        return app;
+    },
+    
+    // Move to the previous step
+    prev: function() {
+        if (this.current <= 1) return;
+        
+        this.current--;
+        this.updateUI();
+    },
+    
+    // Go to a specific step
+    goTo: function(step) {
+        if (step < 1 || step > this.total) return;
+        
+        // If going forward, validate current step first
+        if (step > this.current) {
+            if (!this.validateStep(this.current)) return;
+        }
+        
+        this.current = step;
+        this.updateUI();
+        
+        // Additional step-specific logic
+        if (this.current === 2 && selectedDoctor) {
+            loadDoctorAvailability(selectedDoctor.id);
+        }
+    }
+};
+
+// Navigation between steps
+function nextStep() {
+    steps.next();
+}
+
+function prevStep() {
+    steps.prev();
+}
+
+
+// Generate available time slots for the next 14 days
+function generateAvailableSlots(doctorId) {
+    const slots = [];
+    const now = new Date();
+    const workStartHour = 9;  // 9 AM
+    const workEndHour = 17;   // 5 PM
+    const slotDuration = 30;  // minutes
+    const daysToGenerate = 14; // Show availability for 2 weeks
+    
+    // Generate slots for the next X days
+    for (let day = 0; day < daysToGenerate; day++) {
+        const currentDate = new Date();
+        currentDate.setDate(now.getDate() + day);
+        currentDate.setHours(0, 0, 0, 0);
+        
+        // Skip weekends (0 = Sunday, 6 = Saturday)
+        if (currentDate.getDay() === 0 || currentDate.getDay() === 6) continue;
+        
+        // Generate time slots for working hours
+        for (let hour = workStartHour; hour < workEndHour; hour++) {
+            for (let minute = 0; minute < 60; minute += slotDuration) {
+                const start = new Date(currentDate);
+                start.setHours(hour, minute, 0, 0);
+                
+                const end = new Date(start);
+                end.setMinutes(minute + slotDuration);
+                
+                // Only add slots that are at least 1 hour in the future
+                const nowPlusBuffer = new Date(now.getTime() + 60 * 60000);
+                if (start > nowPlusBuffer) {
+                    // Add some randomness to simulate real-world availability
+                    // In a real app, this would come from your backend
+                    if (Math.random() > 0.3) { // 70% chance a slot is available
+                        slots.push({
+                            id: `slot-${start.getTime()}`,
+                            title: 'Available',
+                            start: start,
+                            end: end,
+                            color: '#4CAF50',
+                            display: 'block',
+                            classNames: ['available-slot'],
+                            extendedProps: {
+                                available: true
+                            }
+                        });
+                    }
+                }
+            }
+        }
+    }
+    return slots;
+}
+
+// Load doctor's availability
+function loadDoctorAvailability(doctorId) {
+    if (!calendar) return;
+    
+    // Clear existing events
+    calendar.removeAllEvents();
+    
+    // Generate and add available slots
+    const availableSlots = generateAvailableSlots(doctorId);
+    availableSlots.forEach(slot => {
+        calendar.addEvent(slot);
     });
-    localStorage.setItem('appointments', JSON.stringify(appointments));
-    displayAppointments();
+    
+    // Show message if no slots available
+    if (availableSlots.length === 0) {
+        alert('No available time slots found for the selected doctor.');
+    }
+    
+    // Ensure calendar is visible
+    document.getElementById('doctorCalendarContainer').style.display = 'block';
 }
 
-// Function to reschedule an appointment
-function rescheduleAppointment(id) {
-    // Switch to Book Appointments section
-    document.querySelector('a[data-section="book-appointments"]').click();
-    // You can add additional logic here to pre-fill the form with the appointment details
+// Show doctor calendar with available slots
+function showDoctorCalendar(events) {
+    if (!calendar) return;
+    
+    calendar.removeAllEvents();
+    events.forEach(event => {
+        calendar.addEvent(event);
+    });
+    
+    document.getElementById('doctorCalendarContainer').style.display = 'block';
 }
 
-// Update the confirmAppointment function
+// Close confirmation popup
+function closeConfirmationPopup() {
+const popup = document.getElementById('appointmentConfirmationPopup');
+popup.style.opacity = '0';
+popup.style.transform = 'translateY(-20px)';
+setTimeout(() => {
+    popup.style.display = 'none';
+}, 300);
+}
+
+
+// Confirm appointment
 function confirmAppointment() {
-    const formData = {
-        doctor: document.getElementById('doctorSelect').options[document.getElementById('doctorSelect').selectedIndex].text,
-        date: document.getElementById('appointmentDate').value,
-        time: document.getElementById('appointmentTime').value
-    };
-
-    // Save the appointment
-    saveAppointment(formData);
-    
-    // Show success message
-    alert('Appointment booked successfully!');
-    
-    // Close popup and clear form
-    closeConfirmationPopup();
-    clearForm();
-
-    // Switch to View Appointments section
-    document.querySelector('a[data-section="view-appointments"]').click();
+if (!selectedDoctor || !selectedSlot) {
+    alert('Please complete all steps before confirming.');
+    return;
 }
 
-// Load appointments when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    displayAppointments();
+// Prepare appointment data
+const appointmentData = {
+    doctorId: selectedDoctor.id,
+    doctorName: selectedDoctor.name,
+    startTime: selectedSlot.start,
+    endTime: selectedSlot.end,
+    status: 'pending'
+};
+
+// Add to appointments table in View Appointments
+const tbody = document.getElementById('appointmentsBody');
+const tr = document.createElement('tr');
+tr.innerHTML = `
+    <td>${appointmentData.doctorName}</td>
+    <td>${appointmentData.startTime.toLocaleDateString('en-GB')}</td>
+    <td>${appointmentData.startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${appointmentData.endTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+    <td>${appointmentData.status}</td>
+    <td><button class="btn-cancel" onclick="this.closest('tr').remove()">Cancel</button></td>
+`;
+tbody.prepend(tr);
+
+// Switch to View Appointments section
+document.querySelectorAll('.dashboard-content').forEach(el => el.style.display = 'none');
+document.getElementById('view-appointments-section').style.display = 'block';
+
+// Reset the form for next booking
+resetForm();
+}
+
+
+// Reset the form
+function resetForm() {
+// Reset to step 1
+document.querySelectorAll('.form-step').forEach(step => step.classList.remove('active'));
+document.getElementById('step1').classList.add('active');
+
+// Reset progress steps
+document.querySelectorAll('.step').forEach((step, index) => {
+    step.classList.toggle('active', index === 0);
 });
+
+// Reset selections
+selectedDoctor = null;
+selectedSlot = null;
+document.getElementById('doctorSearch').value = '';
+document.getElementById('nextToStep2').disabled = true;
+document.getElementById('nextToStep3').disabled = true;
+document.querySelectorAll('.doctor-card').forEach(card => card.classList.remove('selected'));
+
+// Clear calendar
+if (calendar) {
+    calendar.removeAllEvents();
+}
+
+// Reload doctors
+loadDoctors();
+}
+
+
+// Close view modal
+function closeViewModal() {
+const modal = document.getElementById('viewProfileModal');
+modal.style.opacity = '0';
+modal.style.transform = 'translateY(-20px)';
+setTimeout(() => {
+    modal.style.display = 'none';
+}, 300);
+}
+
+
