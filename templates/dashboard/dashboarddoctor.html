@@ -12,6 +12,7 @@
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/css/dashboardlaboratory.css">
+ 
 </head>
 <body>
     <!-- Sidebar -->
@@ -19,13 +20,10 @@
     <!-- Logo Section -->
     <div class="logo-container">
         <div class="logo-wrapper">
-            <a class="navbar-brand" href="index.html">
-                <img src="images/black-logo-removebg-preview.png" alt="Logo" class="full-logo">
-                <img src="images/logo.png" alt="Logo" class="mini-logo">
+            <a class="navbar-brand" href="/templates/dashboard/dashboarddoctor.html">
+                <img src="/static/images/black-logo-removebg-preview.png" alt="Logo" class="full-logo">
+                <img src="/static/images/logo.png" alt="Logo" class="mini-logo">
             </a>
-            <!-- <button class="sidebar-toggle">
-                <i class="fas fa-chevron-left"></i>
-            </button> -->
         </div>
     </div>
     <!-- Navigation Links -->
@@ -36,35 +34,28 @@
                 <span class="nav-text">Dashboard</span>
             </a>
         </li>
-        <li class="has-submenu">
-            <a href="#" data-section="myschedule">
-                <i class="fas fa-check-circle"></i>
-                <span class="nav-text">My schedule</span>
-                <i class="fas fa-chevron-right submenu-arrow"></i>
-            </a>
-        </li>
-        <li class="has-submenu">
-            <a href="#" data-section="pending-consultation">
-                <i class="fas fa-clock"></i>
-                <span class="nav-text">Pending consultation</span>
-                <i class="fas fa-chevron-right submenu-arrow"></i>
-            </a>
-            <!-- <ul class="submenu">
-                <li><a href="#"><span class="nav-text">Normal Tests</span></a></li>
-                <li><a href="#"><span class="nav-text">Urgent Tests</span></a></li>
-            </ul> -->
-        </li>
-        <li class="has-submenu">
-            <a href="#" data-section="completed-consultation">
-                <i class="fas fa-check-circle"></i>
-                <span class="nav-text">Completed consultation</span>
-                <i class="fas fa-chevron-right submenu-arrow"></i>
+        <li>
+            <a href="#" data-section="upcoming-appointments">
+                <i class="fas fa-calendar-check"></i>
+                <span class="nav-text">Upcoming Appointments</span>
             </a>
         </li>
         <li>
-            <a href="#" data-section="history">
-                <i class="fas fa-history"></i>
-                <span class="nav-text">History</span>
+            <a href="#" data-section="patient-management">
+                <i class="fas fa-users"></i>
+                <span class="nav-text">Patient Management</span>
+            </a>
+        </li>
+        <li>
+            <a href="#" data-section="medical-records-section">
+                <i class="fas fa-notes-medical"></i>
+                <span class="nav-text">Medical Records</span>
+            </a>
+        </li>
+        <li>
+            <a href="#" data-section="test-results-section">
+                <i class="fas fa-vial"></i>
+                <span class="nav-text">Test Results</span>
             </a>
         </li>
     </ul>
@@ -95,18 +86,18 @@
             </div>
             <div class="user-profile-wrapper" onclick="toggleProfileDropdown(event)">
                 <div class="user-profile">
-                    <img src="images/doctor.jpg" onerror="this.onerror=null; this.src='images/default-user.png';" alt="User profile" />
+                    <img src="/static/images/default.png" onerror="this.onerror=null; this.src='/static/images/default.png';" alt="User profile" />
                     <div class="user-info">
                         <span class="user-name" id="labDisplayName">DefaultName</span> 
                         <span class="user-role">Doctor</span>
                     </div>                    
                     <div class="profile-dropdown">
-                        <a href="updateProfileModal" class="profile-menu-item" onclick="openUpdateModal(event)">
-                            <i class="fas fa-user-edit"></i>
-                            Update Profile
+                        <a href="#" class="profile-menu-item" onclick="openViewModal(event)">
+                            <i class="fas fa-user-md"></i>
+                            View Profile
                         </a>
                         <div class="menu-divider"></div>
-                        <a href="logindoctor.html" class="profile-menu-item">
+                        <a href="/templates/auth/logindoctor.html" class="profile-menu-item">
                             <i class="fas fa-sign-out-alt"></i>
                             Logout
                         </a>
@@ -127,133 +118,88 @@
                 </div>
         </div>
         <br><br>
-        <!-- Stats Cards
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon pending">
-                    <i class="fas fa-flask"></i>
-                </div>
-                <div class="stat-info">
-                    <h3>Pending consultation</h3>
-                    <p class="stat-number">24</p>
-                    <span class="stat-change increase">+5 today</span>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon completed">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="stat-info">
-                    <h3>Completed consultation</h3>
-                    <p class="stat-number">156</p>
-                    <span class="stat-change increase">+12 today</span>
-                </div>
-            </div>
-        </div> -->
+
 
    
     </div>
 
-    <!-- My Schedule Section -->
-    <div class="dashboard-content" id="myschedule-section" style="display: none;">
-        <div class="calendar-container">
-            <div id="calendar"></div>
-        </div>
-    </div>
-        <!-- Pending Consultation Section -->
-        <div class="dashboard-content" id="pending-consultation-section" style="display: none;">
-            <div class="section-header">
-                <h2>Pending Consultations</h2>
-                <div class="search-filter">
-                    <input type="text" placeholder="Search..." class="search-input">
-                </div>
-            </div>
     
-            <div class="consultation-table-container">
-                <table class="consultation-table">
-                    <thead>
-                        <tr>
-                            <th>Patient</th>
-                            <th>Date</th>
-                            <th>Time</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>abb add</td>
-                            <td>20/04/2024</td>
-                            <td>10:00</td>
-                            <td><span class="status-badge pending">Pending</span></td>
-                            <td class="action-buttons">
-                                <button class="btn-confirm" onclick="confirmConsultation(this)">Confirm</button>
-                                <button class="btn-cancel" onclick="cancelConsultation(this)">Cancel</button>
-                                <button class="btn-record" onclick="openRecordModal(this)">Extra</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>douaa add</td>
-                            <td>21/04/2025</td>
-                            <td>14:30</td>
-                            <td><span class="status-badge pending">Pending</span></td>
-                            <td class="action-buttons">
-                                <button class="btn-confirm" onclick="confirmConsultation(this)">Confirm</button>
-                                <button class="btn-cancel" onclick="cancelConsultation(this)">Cancel</button>
-                                <button class="btn-record" onclick="openRecordModal(this)">Extra</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
 
-         <!-- Record Request Modal -->
-         <div id="recordModal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <span class="close-modal" onclick="closeRecordModal()">&times;</span>
-                <h2>Test Request</h2>
-                <div class="test-request-form">
-                    <div class="form-group">
-                        <label for="testType">Test Type</label>
-                        <select id="testType" class="form-control">
-                            <option value="">Select test type</option>
-                            <option value="blood">Blood Test</option>
-                            <option value="TETS"> Test</option>
-               
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    <!-- <div class="form-group">
-                        <label for="urgency">Priority</label>
-                        <select id="urgency" class="form-control">
-                            <option value="normal">Normal</option>
-                            <option value="emergency">Emergency</option>
-                        </select>
-                    </div> -->
-                    <!-- <div class="form-group">
-                        <label for="notes">Additional Notes</label>
-                        <textarea id="notes" class="form-control" placeholder="Add any additional notes if needed..."></textarea>
-                    </div> -->
-                    <div class="modal-actions">
-                        <button class="btn-cancel" onclick="closeRecordModal()">Cancel</button>
-                        <button class="btn-send" onclick="sendTestRequest()">Send</button>
-                    </div>
+    <!-- View Profile Modal -->
+    <div id="viewProfileModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; opacity: 0; transition: opacity 0.3s ease; overflow-y: auto;">
+        <div style="background: white; width: 90%; max-width: 500px; margin: 50px auto; padding: 20px; border-radius: 8px; position: relative; transform: translateY(-20px); transition: transform 0.3s ease;">
+            <span onclick="closeViewModal()" style="position: absolute; right: 20px; top: 10px; font-size: 24px; cursor: pointer; color: #666;">&times;</span>
+            
+            <h2 style="margin-bottom: 20px; color: #1a73e8; text-align: center;">
+                <i class="fas fa-user-md"></i> Doctor Profile
+            </h2>
+            
+            <div class="profile-view-content">
+                <!-- Profile Image -->
+                <div style="margin-bottom: 25px; text-align: center;">
+                    <img src="/static/images/default.png" 
+                         alt="Doctor Profile" 
+                         id="viewProfileImage" 
+                         style="width: 120px; height: 120px; border-radius: 50%; margin-bottom: 10px; object-fit: cover; border: 3px solid #1a73e8;" 
+                         onerror="this.src='/static/images/default.png'">
+                </div>
+                
+                <!-- Profile Information -->
+                <div class="info-group" style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #5f6368;">
+                        <i class="fas fa-user"></i> Full Name
+                    </label>
+                    <p id="viewFullName" style="font-size: 16px; color: #333; padding: 8px 0;">...</p>
+                </div>
+                
+                <div class="info-group" style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #5f6368;">
+                        <i class="fas fa-envelope"></i> Email
+                    </label>
+                    <p id="viewEmail" style="font-size: 16px; color: #333; padding: 8px 0;">...</p>
+                </div>
+                
+                <div class="info-group" style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #5f6368;">
+                        <i class="fas fa-phone-alt"></i> Phone Number
+                    </label>
+                    <p id="viewPhone" style="font-size: 16px; color: #333; padding: 8px 0;">...</p>
+                </div>
+
+                <div class="info-group" style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #5f6368;">
+                        <i class="fas fa-stethoscope"></i> Medical Specialty
+                    </label>
+                    <p id="viewSpecialty" style="font-size: 16px; color: #333; padding: 8px 0;">...</p>
+                </div>
+
+                <div class="info-group" style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #5f6368;">
+                        <i class="fas fa-venus-mars"></i> Gender
+                    </label>
+                    <p id="viewGender" style="font-size: 16px; color: #333; padding: 8px 0;">...</p>
+                </div>
+
+                <!-- Close Button -->
+                <div style="text-align: center; margin-top: 25px;">
+                    <button onclick="closeViewModal()" 
+                            style="padding: 12px 24px; background: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s;">
+                        <i class="fas fa-times"></i> Close
+                    </button>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Completed Consultation Section -->
-    <div class="dashboard-content" id="completed-consultation-section" style="display: none;">
+
+    <!-- Add new sections after the dashboard-content div -->
+    <div class="dashboard-content" id="upcoming-appointments-section" style="display: none;">
         <div class="section-header">
-            <h2>Completed Consultations</h2>
-            <div class="search-filter">
-                <input type="text" placeholder="Search..." class="search-input">
-                <select class="filter-select">
-                    <option value="all">All Consultations</option>
+            <h2>Upcoming Appointments</h2>
+            <div class="filter-controls">
+                <select id="appointmentFilter" class="filter-select">
                     <option value="today">Today</option>
                     <option value="week">This Week</option>
-                    <option value="month">This Month</option>
+                    <option value="all">All Appointments</option>
                 </select>
             </div>
         </div>
@@ -269,20 +215,61 @@
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody id="completedConsultationsBody">
-                    <!-- Completed consultations will be added here dynamically -->
+                <tbody>
+                    <tr>
+                        <td>douaa ben</td>
+                        <td>20/05/2025</td>
+                        <td>10:00</td>
+                        <td><span class="status-badge pending">Pending</span></td>
+                        <td class="action-buttons">
+                            <button class="btn-record" onclick="openMedicalFolderModal(this)">
+                                <i class="fas fa-folder-plus"></i> Medical Folder
+                            </button>
+                            <button class="btn-complete" onclick="completeConsultation(this)">
+                                <i class="fas fa-check-circle"></i> Complete
+                            </button>
+                            <button class="btn-cancel" onclick="cancelAppointment(this)">
+                                <i class="fas fa-trash-alt"></i> Cancel
+                            </button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>marwa hamammouche</td>
+                        <td>10/05/2025</td>
+                        <td>14:30</td>
+                        <td><span class="status-badge pending">Pending</span></td>
+                        <td class="action-buttons">
+                            <button class="btn-record" onclick="openMedicalFolderModal(this)">
+                                <i class="fas fa-folder-plus"></i> Medical Folder
+                            </button>
+                            <button class="btn-complete" onclick="completeConsultation(this)">
+                                <i class="fas fa-check-circle"></i> Complete
+                            </button>
+                            <button class="btn-cancel" onclick="cancelAppointment(this)">
+                                <i class="fas fa-trash-alt"></i> Cancel
+                            </button>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
-     <!-- History Section -->
-     <div class="dashboard-content" id="history-section" style="display: none;">
+
+    <!-- Patient Management -->
+    <div class="dashboard-content" id="patient-management-section" style="display: none;">
         <div class="section-header">
-            <h2>Consultation History</h2>
-            <div class="search-filter">
-                <input type="text" placeholder="Search..." class="search-input">
+            <h2>Patient Management</h2>
+            <div class="search-controls">
+                <div class="filter-controls">
+                    <select id="patientFilter" class="filter-select">
+                        <option value="all">All Patients</option>
+                        <option value="recent">Recent</option>
+                        <option value="pending">Pending Tests</option>
+                    </select>
+                </div>
             </div>
         </div>
+
 
         <div class="consultation-table-container">
             <table class="consultation-table">
@@ -295,105 +282,107 @@
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody id="historyConsultationsBody">
-                    <!-- Historical consultations will be added here dynamically -->
+                 <tbody id="completedConsultationsBody">
+                     <!-- Completed consultations will be added here dynamically  -->
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- Update Profile Modal -->
-    <div id="updateProfileModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; opacity: 0; transition: opacity 0.3s ease; overflow-y: auto;">
-        <div style="background: white; width: 90%; max-width: 500px; margin: 50px auto; padding: 20px; border-radius: 8px; position: relative; transform: translateY(-20px); transition: transform 0.3s ease;">
-            <span onclick="closeUpdateModal()" style="position: absolute; right: 20px; top: 10px; font-size: 24px; cursor: pointer; color: #666;">&times;</span>
-            
-            <h2 style="margin-bottom: 20px; color: #1a73e8; text-align: center;">Update Doctor Profile</h2>
-            
-            <form id="updateProfileForm" onsubmit="return false;">
-                <div style="margin-bottom: 25px; text-align: center;">
-                    <img src="images/doctor.jpg" alt="doctor Logo" id="modalProfileImage" style="width: 120px; height: 120px; border-radius: 50%; margin-bottom: 10px; object-fit: cover; border: 3px solid #1a73e8;" onerror="this.src='images/default-user.png'">
-                    <label for="profilePic" style="display: inline-block; padding: 8px 15px; background: #f1f3f4; border-radius: 4px; cursor: pointer; color: #1a73e8;">
-                        <i class="fas fa-camera"></i> Update Profile Picture
-                    </label>
-                    <input type="file" id="profilePic" accept="image/*" style="display: none;" onchange="handleProfileImageChange(event)">
-                </div>
+
+
+         
+
+    <!-- Update the Medical Folder Modal -->
+    <div id="medicalFolderModal" class="modal">
+        <div class="modal-content">
+        <span class="close-modal" onclick="closeMedicalFolderModal()">&times;</span>
+        <h2><i class="fas fa-folder-open"></i> Medical Folder</h2>
+        
+        <div class="medical-folder-tabs">
+            <button class="tab-btn active" data-tab="notes">
+                <i class="fas fa-sticky-note"></i> Notes
+            </button>
+            <button class="tab-btn" data-tab="tests">
+                <i class="fas fa-vial"></i> Tests Requests
+            </button>
+        </div>
+
+        <div id="notesTab" class="tab-content">
+            <div class="notes-section">
                 
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; color: #5f6368;">
-                        <i class="fas fa-user"></i> Full Name
-                    </label>
-                    <input id="labNameInput" type="text" class="form-control" required>
+                <div class="previous-notes">
+                    <h3>Notes</h3>
+                    <textarea id="newNoteText" placeholder="Type your note here..."></textarea>
                 </div>
-                
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; color: #5f6368;">
-                        <i class="fas fa-envelope"></i> Email
-                    </label>
-                    <input id="emailInput" type="email" class="form-control" required>
+
+                    <div style="text-align: right;">
+                        <button onclick="saveNote()" class="btn-save">
+                            <i class="fas fa-save"></i> Save Note
+                        </button>
                 </div>
-                
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; color: #5f6368;">
-                        <i class="fas fa-phone"></i> Phone Number
-                    </label>
-                    <div class="input-group">
-                        <span class="input-group-text">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/7/77/Flag_of_Algeria.svg" alt="DZ" style="width: 24px; height: auto;">
-                            <span>+213</span>
-                        </span>
-                        <input id="phoneInput" type="tel" class="form-control" placeholder="0 00 00 00 00" required pattern="[0-9\s+]+" inputmode="tel">
+            </div>
+        </div>
+
+        <div id="testsTab" class="tab-content" style="display: none;">
+            <div class="previous-tests">
+                <h3>Test Requests</h3>
+                <select id="testType" class="form-control">
+                    <option value="">-- Select Test Type --</option>
+                    <option value="Blood Test">Blood Test</option>
+                    <option value="TCH">TCH</option>
+     
+                </select>
+            </div>
+            <div class="test-request-form">
+                    <div style="text-align: right;">
+                        <button onclick="submitTestRequest()" class="btn-request">
+                            <i class="fas fa-paper-plane"></i> Request Test
+                        </button>
                     </div>
-                </div>
+            </div>
 
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; color: #5f6368;">
-                        <i class="fas fa-stethoscope"></i> Medical Specialty
-                    </label>
-                    <select id="specialityInput" class="form-control" required>
-                        <option value="">-- Select your specialty --</option>
-                        <option value="General Medicine">General Medicine</option>
-                        <option value="Cardiology">Cardiology</option>
-                        <option value="Dermatology">Dermatology</option>
-                        <option value="Pediatrics">Pediatrics</option>
-                        <option value="Neurology">Neurology</option>
-                        <option value="Oncology">Oncology</option>
-                        <option value="Gynecology">Gynecology</option>
-                        <option value="Psychiatry">Psychiatry</option>
-                        <option value="Orthopedics">Orthopedics</option>
-                    </select>
-                </div>
-
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; color: #5f6368;">
-                        <i class="fas fa-venus-mars"></i> Gender
-                    </label>
-                    <div>
-                        <input type="radio" id="maleInput" name="gender" value="male">
-                        <label for="maleInput">Male</label>
-                        <input type="radio" id="femaleInput" name="gender" value="female">
-                        <label for="femaleInput">Female</label>
-                    </div>
-                </div>
-
-                <div style="text-align: right; margin-top: 25px;">
-                    <button type="button" onclick="closeUpdateModal()" style="padding: 12px 24px; margin-right: 10px; border: 1px solid #dadce0; background: white; border-radius: 4px; cursor: pointer; color: #5f6368; transition: background-color 0.3s;">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
-                    <button type="button" onclick="saveProfile()" style="padding: 12px 24px; background: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s;">
-                        <i class="fas fa-save"></i> Save Changes
-                    </button>
-                </div>
-            </form>
+           
         </div>
     </div>
 
 
+      <!-- view the Medical Folder Modal -->
+      <div id="medicalFolderModalview" class="modal">
+        <div class="modal-content">
+        <span class="close-modal" onclick="closeMedicalFolderModal()">&times;</span>
+        <h2><i class="fas fa-folder-open"></i> Medical Folder</h2>
+        
+        <div class="medical-folder-tabs">
+            <button class="tab-btn active" data-tab="notes">
+                <i class="fas fa-sticky-note"></i> Notes
+            </button>
+            <button class="tab-btn" data-tab="tests">
+                <i class="fas fa-vial"></i> Tests Requests
+            </button>
+        </div>
 
-    <script src="dashboarddoctor.js"></script>
-    <script src="dashboard.js"></script>
-    
-<!-- FullCalendar JS -->
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+        <div id="notesTab" class="tab-content">
+            <div class="notes-section">
+       
+                <div class="previous-notes">
+                    <h3>Notes</h3>
+                    <div class="notes-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="testsTab" class="tab-content" style="display: none;">
+            <div class="previous-tests">
+                <h3>Test Requests</h3>
+                <div class="tests-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+    <script src="/static/js/dashboarddoctor.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
 
 
 

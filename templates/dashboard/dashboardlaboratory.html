@@ -9,7 +9,7 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboardlaboratory.css') }}">
+    <link rel="stylesheet" href="/static/css/dashboardlaboratory.css">
 </head>
 <body>
     <!-- Sidebar -->
@@ -17,9 +17,9 @@
     <!-- Logo Section -->
     <div class="logo-container">
         <div class="logo-wrapper">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
-                <img src="{{ url_for('static', filename='images/black-logo-removebg-preview.png') }}" alt="Logo" class="full-logo">
-                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" class="mini-logo">
+            <a class="navbar-brand" href="/templates/dashboard/dashboardlaboratory.html">
+                <img src="/static/images/black-logo-removebg-preview.png" alt="Logo" class="full-logo">
+                <img src="/static/images/logo.png" alt="Logo" class="mini-logo">
             </a>
             <!-- <button class="sidebar-toggle">
                 <i class="fas fa-chevron-left"></i>
@@ -84,22 +84,20 @@
                     </div>
                 </div>
             </div>
-            <div class="user-profile-wrapper" id="userProfileWrapper">
+            <div class="user-profile-wrapper" onclick="toggleProfileDropdown(event)">
                 <div class="user-profile">
-                    <img src="{{ url_for('static', filename='images/doctor.jpg') }}" 
-                         id="labProfileImage" 
-                         alt="User profile">
+                    <img src="/static/images/default.png" onerror="this.onerror=null; this.src='/static/images/default.png';" alt="User profile" />
                     <div class="user-info">
                         <span class="user-name" id="labDisplayName">DefaultName</span> 
                         <span class="user-role">Laboratory</span>
                     </div>                    
                     <div class="profile-dropdown">
-                        <a href="#" class="profile-menu-item" id="updateProfileLink">
-                            <i class="fas fa-user-edit"></i>
-                            Update Profile
+                        <a href="#" class="profile-menu-item" onclick="openViewModal(event)">
+                            <i class="fas fa-user-md"></i>
+                            View Profile
                         </a>
                         <div class="menu-divider"></div>
-                        <a href="{{ url_for('lab_staff_bp.login_page') }}" class="profile-menu-item">
+                        <a href="/templates/auth/loginlaboratory.html" class="profile-menu-item">
                             <i class="fas fa-sign-out-alt"></i>
                             Logout
                         </a>
@@ -173,7 +171,7 @@
                         <td>#001</td>
                         <td>Bennaceur douaa</td>
                         <td>Blood Test</td>
-                        <td>2024-03-15</td>
+                        <td>2025-03-15</td>
                         <td><span class="status-badge waiting">pending</span></td>
                         <td>
                             <button class="action-btn import-btn" onclick="openImportPopup(this)">
@@ -186,7 +184,7 @@
                         <td>#002</td>
                         <td>hamammouche Marwa</td>
                         <td>Analysis</td>
-                        <td>2024-03-14</td>
+                        <td>2025-03-14</td>
                         <td><span class="status-badge waiting">pending</span></td>
                         <td>
                             <button class="action-btn import-btn" onclick="openImportPopup(this)">
@@ -199,7 +197,7 @@
                         <td>#003</td>
                         <td>MARWA douaa</td>
                         <td>TCH</td>
-                        <td>2024-03-13</td>
+                        <td>2025-03-13</td>
                         <td><span class="status-badge waiting">pending</span></td>
                         <td>
                             <button class="action-btn import-btn" onclick="openImportPopup(this)">
@@ -238,6 +236,7 @@
                         <th>Test Type</th>
                         <th>Date</th>
                         <th>Status</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="completedTestsTableBody">
@@ -245,15 +244,26 @@
                         <td>#004</td>
                         <td>mmm ddd</td>
                         <td>Blood Test</td>
-                        <td>2024-03-12</td>
-                        <td><span class="status-badge completed">Completed</span></td>
+                        <td>2025-03-12</td>
+                        <td>
+                            <span class="status-badge completed">Completed</span> 
+                        </td>
+                        <td>
+                           <button id="aiBtn" class="action-btn import-btn aiBtn"><i class="fas fa-robot"></i>IA</button>
+                        </td>
                     </tr>
                     <tr>
                         <td>#005</td>
                         <td>ddd mmm</td>
                         <td>Analysis</td>
-                        <td>2024-03-11</td>
-                        <td><span class="status-badge completed">Completed</span></td>
+                        <td>2025-03-11</td>
+                        <td>
+                            <span class="status-badge completed">Completed</span> 
+                        </td>
+                        <td>
+                           <button id="aiBtn" class="action-btn import-btn aiBtn"><i class="fas fa-robot"></i>IA</button>
+                        </td>
+                        
                     </tr>
                 </tbody>
             </table>
@@ -263,68 +273,71 @@
             <span class="page-numbers">
                 <span id="currentPageCompleted">1</span> / <span id="totalPagesCompleted">1</span>
             </span>
-            <button class="pagination-btn" id="nextPageCompleted"><i class="fas fa-chevron-right"></i></button>
+            
         </div>
     </div>
 
-    <!-- Update Profile Modal -->
-    <div id="updateProfileModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; opacity: 0; transition: opacity 0.3s ease; overflow-y: auto;">
+
+
+    
+    <!-- View Profile Modal -->
+    <div id="viewProfileModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; opacity: 0; transition: opacity 0.3s ease; overflow-y: auto;">
         <div style="background: white; width: 90%; max-width: 500px; margin: 50px auto; padding: 20px; border-radius: 8px; position: relative; transform: translateY(-20px); transition: transform 0.3s ease;">
-            <span onclick="closeUpdateModal()" style="position: absolute; right: 20px; top: 10px; font-size: 24px; cursor: pointer; color: #666;">&times;</span>
+            <span onclick="closeViewModal()" style="position: absolute; right: 20px; top: 10px; font-size: 24px; cursor: pointer; color: #666;">&times;</span>
             
-            <h2 style="margin-bottom: 20px; color: #1a73e8; text-align: center;">Laboratory Profile</h2>
+            <h2 style="margin-bottom: 20px; color: #1a73e8; text-align: center;">
+                <i class="fas fa-user-md"></i> Laboratory Profile
+            </h2>
             
-            <form id="updateProfileForm" onsubmit="return false;">
+            <div class="profile-view-content">
+                <!-- Profile Image -->
                 <div style="margin-bottom: 25px; text-align: center;">
-                    <img src="{{ url_for('static', filename='images/doctor.jpg') }}" 
-                         alt="Laboratory Logo" 
-                         id="modalProfileImage" 
-                         style="width: 120px; height: 120px; border-radius: 50%; margin-bottom: 10px; object-fit: cover; border: 3px solid #1a73e8;">
-                    <label for="profilePic" style="display: inline-block; padding: 8px 15px; background: #f1f3f4; border-radius: 4px; cursor: pointer; color: #1a73e8;">
-                        <i class="fas fa-camera"></i> Update Laboratory Logo
-                    </label>
-                    <input type="file" id="profilePic" accept="image/*" style="display: none;" onchange="handleProfileImageChange(event)">
+                    <img src="/static/images/default.png" 
+                         alt="Doctor Profile" 
+                         id="viewProfileImage" 
+                         style="width: 120px; height: 120px; border-radius: 50%; margin-bottom: 10px; object-fit: cover; border: 3px solid #1a73e8;" 
+                         onerror="this.src='/static/images/default.png'">
                 </div>
                 
-                <div style="margin-bottom: 15px;">
+                <!-- Profile Information -->
+                <div class="info-group" style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px; color: #5f6368;">
                         <i class="fas fa-hospital"></i> Laboratory Name
                     </label>
-                    <input id="labNameInput" type="text" value="Laboratoire" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; transition: border-color 0.3s;">
+                    <p id="viewFullName" style="font-size: 16px; color: #333; padding: 8px 0;">...</p>
+                </div>
 
-                </div>
+          
                 
-                <div style="margin-bottom: 15px;">
+                <div class="info-group" style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px; color: #5f6368;">
-                        <i class="fas fa-envelope"></i> Email 
+                        <i class="fas fa-envelope"></i> Email
                     </label>
-                    <input type="email" value="nabdh@gmail.com" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; transition: border-color 0.3s;">
+                    <p id="viewEmail" style="font-size: 16px; color: #333; padding: 8px 0;">...</p>
                 </div>
-                
-                <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; color: #5f6368;">
-                        <i class="fas fa-mobile-alt"></i> Phone Number
-                    </label>
-                    <input type="tel" value="+213 000 00 00 00" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; transition: border-color 0.3s;">
-                </div>
-                <div style="margin-bottom: 15px;">
+            
+
+                <div class="info-group" style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px; color: #5f6368;">
                         <i class="fas fa-map-marker-alt"></i>Address
                     </label>
-                    <textarea style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; transition: border-color 0.3s; min-height: 80px; resize: vertical;" placeholder="Enter complete laboratory address">02 Medical Street, Algiers, CHLEF</textarea>
+                    <p id="viewPhone" style="font-size: 16px; color: #333; padding: 8px 0;">...</p>
                 </div>
-                
-                <div style="text-align: right; margin-top: 25px;">
-                    <button type="button" onclick="closeUpdateModal()" style="padding: 12px 24px; margin-right: 10px; border: 1px solid #dadce0; background: white; border-radius: 4px; cursor: pointer; color: #5f6368; transition: background-color 0.3s;">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
-                    <button type="button" onclick="saveProfile()" style="padding: 12px 24px; background: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s;">
-                        <i class="fas fa-save"></i> Save Changes
+            
+
+                <!-- Close Button -->
+                <div style="text-align: center; margin-top: 25px;">
+                    <button onclick="closeViewModal()" 
+                            style="padding: 12px 24px; background: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s;">
+                        <i class="fas fa-times"></i> Close
                     </button>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
+
+
+   
 
     <!-- Import Results Popup -->
     <div id="importResultsPopup" class="popup" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
@@ -341,77 +354,24 @@
         </div>
     </div>
 
-    <script>
-        // Profile dropdown functionality
-        document.getElementById('userProfileWrapper').addEventListener('click', function(event) {
-            const dropdown = this.querySelector('.profile-dropdown');
-            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-        });
+    <!-- ai modal -->
+    <div class="modal" id="aiModal" style="display: none;" >
+        <div style="background: white; width: 90%; max-width: 500px; margin: 50px auto; padding: 20px; border-radius: 8px; position: relative; transform: translateY(-20px); transition: transform 0.3s ease;">
+            <span onclick="closeAiModal()" style="position: absolute; right: 20px; top: 10px; font-size: 24px; cursor: pointer; color: #666;">&times;</span>
+            <h2 style="margin-bottom: 20px; color: #1a73e8; text-align: center;">
+                <i class="fas fa-robot"></i> AI Assistant
+            </h2>
+            <div id="aiMessages" class="message"></div>
+            <div class="ai-content">
+                <!-- <p>AI Analysis</p> -->
+                <textarea id="aiInput" placeholder="Ask a question..." style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 4px; margin-bottom: 20px;"></textarea>
+                <button onclick="sendAiMessage()" style="padding: 10px 20px; background: #0A4D68; color: white; border: none; border-radius: 4px; cursor: pointer;">Run</button>
+            </div>
+        </div>
+    </div>
 
-        // Update profile modal functionality
-        document.getElementById('updateProfileLink').addEventListener('click', function(event) {
-            event.preventDefault();
-            const modal = document.getElementById('updateProfileModal');
-            modal.style.display = 'block';
-            modal.style.opacity = '1';
-        });
-
-        // Close update profile modal
-        function closeUpdateModal() {
-            const modal = document.getElementById('updateProfileModal');
-            modal.style.opacity = '0';
-            setTimeout(() => {
-                modal.style.display = 'none';
-            }, 300);
-        }
-
-        // Handle profile image change
-        function handleProfileImageChange(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('modalProfileImage').src = e.target.result;
-                    document.getElementById('labProfileImage').src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        // Save profile changes
-        function saveProfile() {
-            // Add your save profile logic here
-            closeUpdateModal();
-        }
-
-        // Import results popup functionality
-        function openImportPopup(button) {
-            const popup = document.getElementById('importResultsPopup');
-            popup.style.display = 'block';
-        }
-
-        function closeImportPopup() {
-            const popup = document.getElementById('importResultsPopup');
-            popup.style.display = 'none';
-        }
-
-        function confirmImport() {
-            // Add your import confirmation logic here
-            closeImportPopup();
-        }
-
-        // Handle image errors
-        function handleImageError(img) {
-            img.onerror = null;
-            img.src = "{{ url_for('static', filename='images/default-user.png') }}";
-        }
-
-        // Add error handlers to images
-        document.getElementById('labProfileImage').onerror = function() { handleImageError(this); };
-        document.getElementById('modalProfileImage').onerror = function() { handleImageError(this); };
-    </script>
-    <script src="{{ url_for('static', filename='js/dashboardlaboratory.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="/static/js/dashboard.js"></script>
+    <script src="/static/js/dashboardlaboratory.js"></script>
 
 
 </body>

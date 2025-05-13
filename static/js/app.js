@@ -1,12 +1,12 @@
 // for navbar scroll
-window.addEventListener("scroll", function(){
-var navbar = document.getElementById("navbar"); //get the navbar 
-if(window.scrollY > 50 ){
-  navbar.classList.add("scrolled"); //add to class
-}else{
-  navbar.classList.remove("scrolled"); // remove from class
-}
-})
+// window.addEventListener("scroll", function(){
+// var navbar = document.getElementById("navbar"); //get the navbar 
+// if(window.scrollY > 50 ){
+//   navbar.classList.add("scrolled"); //add to class
+// }else{
+//   navbar.classList.remove("scrolled"); // remove from class
+// }
+// })
 
 //for sign up
 function prevStep(currentStep) {
@@ -60,12 +60,22 @@ function nextStep(currentStep) {
     }
 }
 
+
 // Get the current date
+// let currentDate = new Date();
+
+// // Format the date to d/m/y
+// let formattedDate = `${currentDate.getDate()}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`;
+
+// // Send the formatted date to the backend
+// console.log(formattedDate);  // Output: "18/4/2025"
+
+
+
 let currentDate = new Date();
 
-// Format the date to d/m/y
-let formattedDate = `${currentDate.getDate()}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`;
+// Format the date to d/m/y, ensuring two digits for day and month
+let formattedDate = `${String(currentDate.getDate()).padStart(2, '0')}/${String(currentDate.getMonth() + 1).padStart(2, '0')}/${currentDate.getFullYear()}`;
 
-// Send the formatted date to the backend
-console.log(formattedDate);  // Output: "18/4/2025"
-
+// Ensure that the formattedDate is properly assigned before the log
+console.log(formattedDate);  // Output: "18/04/2025"

@@ -434,3 +434,131 @@ function sendTestRequest() {
     alert('Test request sent successfully');
     closeRecordModal();
 }
+
+
+    document.querySelectorAll('.tab-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        // Hide all tabs
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.style.display = 'none';
+        });
+
+        // Show the selected tab
+        const tabId = this.getAttribute('data-tab');
+        document.getElementById(tabId + 'Tab').style.display = 'block';
+
+        // Change active tab button
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        this.classList.add('active');
+    });
+});
+
+function saveNote() {
+    const noteText = document.getElementById('newNoteText').value;
+    if (noteText.trim() !== '') {
+        // Save the note (you could send this to a backend or save in local storage)
+        alert("Note saved successfully!");
+        document.getElementById('newNoteText').value = ''; // Clear the textarea
+    } else {
+        alert("Please type a note before saving.");
+    }
+}
+
+function submitTestRequest() {
+    const testType = document.getElementById('testType').value;
+    if (testType.trim() !== '') {
+        // Submit the test request (you could send this to a backend or save in local storage)
+        alert("Test request submitted successfully!");
+        document.getElementById('testType').value = ''; // Clear the select
+    } else {
+        alert("Please select a test type before submitting.");
+    }
+}   
+
+
+
+// Example for opening and closing modals
+function openMedicalFolderModal(button) {
+    const modal = document.getElementById('medicalFolderModal');
+    modal.style.display = 'block';  // Show modal
+}
+
+function openMedicalFolderModalview(button) {
+    const modal = document.getElementById('medicalFolderModalview');
+    modal.style.display = 'block';  // Show modal
+}
+
+function closeMedicalFolderModalview() {
+    const modal = document.getElementById('medicalFolderModalview');
+    modal.style.display = 'none';  // Hide modal
+}
+
+
+function closeMedicalFolderModal() {
+    const modal = document.getElementById('medicalFolderModal');
+    modal.style.display = 'none';  // Hide modal
+
+}
+
+
+// Toggle the view of notes and test sections
+function toggleTab(tabName) {
+    const notesTab = document.getElementById('notesTab');
+    const testsTab = document.getElementById('testsTab');
+    
+    if (tabName === 'notes') {
+        notesTab.style.display = 'block';
+        testsTab.style.display = 'none';
+    } else {
+        notesTab.style.display = 'none';
+        testsTab.style.display = 'block';
+    }
+}
+
+
+
+
+// Attach event listener for tab buttons
+document.querySelectorAll('.tab-btn').forEach(button => {
+    button.addEventListener('click', switchTab);
+});
+
+
+function completeConsultation(button) {
+    // Get the row of the clicked button
+    var row = button.closest('tr');
+    
+    // Get the patient's name, date, and time from the row
+    var patientName = row.cells[0].textContent;
+    var appointmentDate = row.cells[1].textContent;
+    var appointmentTime = row.cells[2].textContent;
+    
+    // Change the status of the appointment to "Completed"
+    row.cells[3].innerHTML = '<span class="status-badge completed">Completed</span>';
+    
+    // Remove the "Complete" button and "Cancel" button
+    row.cells[4].innerHTML = ''; // Assuming the buttons are in the 5th cell (index 4)
+
+    // Create a new row for the patient in the "Patient Management" section
+    var completedRow = document.createElement('tr');
+    completedRow.innerHTML = `
+        <td>${patientName}</td>
+        <td>${appointmentDate}</td>
+        <td>${appointmentTime}</td>
+        <td><span class="status-badge completed">Completed</span></td>
+        <td>
+            <button class="btn-folder" onclick="openMedicalFolderModalview()">
+                <i class="fas fa-folder-plus"></i> View Medical Folder
+            </button>
+        </td>
+    `;
+    
+    // Append the new row to the "Patient Management" section
+    document.getElementById('completedConsultationsBody').appendChild(completedRow);
+    
+    // Optionally, you can also remove the original row from the consultations table
+    row.remove();
+}
+

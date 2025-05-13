@@ -16,15 +16,13 @@
     <!-- Sidebar -->
 <div class="sidebar">
     <!-- Logo Section -->
-       <div class="logo-container">
+    <div class="logo-container">
         <div class="logo-wrapper">
-            <a class="navbar-brand" href="index.html">
+            <a class="navbar-brand" href="/templates/dashboard/dashboardpatient.html">
                 <img src="/static/images/black-logo-removebg-preview.png" alt="Logo" class="full-logo">
                 <img src="/static/images/logo.png" alt="Logo" class="mini-logo">
             </a>
-            <!-- <button class="sidebar-toggle">
-                <i class="fas fa-chevron-left"></i>
-            </button> -->
+
         </div>
     </div>
     <!-- Navigation Links -->
@@ -56,7 +54,7 @@
                 <i class="fas fa-chevron-right submenu-arrow"></i>
             </a>
         </li>
-        
+
     </ul>
 </div>
 
@@ -85,7 +83,7 @@
             </div>
             <div class="user-profile-wrapper" onclick="toggleProfileDropdown(event)">
                 <div class="user-profile">
-                    <img src="images/doctor.jpg" onerror="this.onerror=null; this.src='images/default-user.png';" alt="User profile" />
+                    <img src="/static/images/default.png" onerror="this.onerror=null; this.src='/static/images/default.png';" alt="User profile" />
                     <div class="user-info">
                         <span class="user-name" id="labDisplayName">DefaultName</span> 
                         <span class="user-role">Patient</span>
@@ -96,7 +94,7 @@
                             View Profile
                         </a>
                         <div class="menu-divider"></div>
-                        <a href="loginpatient.html" class="profile-menu-item">
+                        <a href="/templates/auth/loginpatient.html" class="profile-menu-item">
                             <i class="fas fa-sign-out-alt"></i>
                             Logout
                         </a>
@@ -250,11 +248,11 @@
             <div class="profile-view-content">
                 <!-- Profile Image -->
                 <div style="margin-bottom: 25px; text-align: center;">
-                    <img src="images/doctor.jpg" 
+                    <img src="/static/images/default.png" 
                          alt="Doctor Profile" 
                          id="viewProfileImage" 
                          style="width: 120px; height: 120px; border-radius: 50%; margin-bottom: 10px; object-fit: cover; border: 3px solid #1a73e8;" 
-                         onerror="this.src='images/default-user.png'">
+                         onerror="this.src='/static/images/default.png'">
                 </div>
                 
                 <!-- Profile Information -->
@@ -305,5 +303,16 @@
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
 
 
+
+ <script>
+  // Retrieve the JWT token from localStorage
+  const jwtToken = localStorage.getItem("access_token");
+
+  // Optional: Check if it exists
+  if (!jwtToken) {
+    console.warn("No JWT token found. Redirecting to login.");
+    window.location.href = "/templates/auth/loginpatient.html";
+  }
+</script>
 </body>
 </html>

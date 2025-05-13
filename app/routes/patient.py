@@ -1,21 +1,23 @@
-# app/routes/patient.py
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for
 from app.models.patient import Patient
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app import db
 from datetime import timedelta, datetime
 import logging
-
+import traceback
 
 patient_bp = Blueprint('patient_bp', __name__, url_prefix='/patient')
+
 
 @patient_bp.route('/signup', methods=['GET'])
 def signup_page():
     return render_template('auth/signuppatient.html')
 
+
 @patient_bp.route('/login', methods=['GET'])
 def login_page():
     return render_template('auth/loginpatient.html')
+
 
 @patient_bp.route('/dashboard')
 @jwt_required()
@@ -38,6 +40,7 @@ def dashboard():
     except Exception as e:
         logging.error(f'Dashboard error: {str(e)}')
         return redirect(url_for('patient_bp.login_page'))
+
 
 # Signup route
 @patient_bp.route('/signup', methods=['POST'])
@@ -70,6 +73,7 @@ def signup():
         except ValueError:
             return jsonify({'msg': 'Invalid birth date format. Use YYYY-MM-DD'}), 400
 
+        # Create new patient instance
         new_patient = Patient(
             fullname=data['fullname'],
             email=data['email'],
@@ -77,22 +81,28 @@ def signup():
             gender=data['gender'],
             birth_date=birth_date
         )
+
         # Hash the password
         new_patient.set_password(data['password'])
 
         try:
+            # Add new patient to the database and commit
             db.session.add(new_patient)
             db.session.commit()
             return jsonify({'msg': 'Patient created successfully'}), 201
         except Exception as e:
+            # If database error occurs, rollback the session and log the error
             db.session.rollback()
-            print(f"Database error: {str(e)}")  # Log the error
+            traceback.print_exc()
+            logging.error(f"Database error: {e.__class__.__name__} - {str(e)}")
             return jsonify({'msg': 'Error creating patient in database'}), 500
 
     except Exception as e:
-        print(f"Unexpected error: {str(e)}")  # Log the error
+        logging.error(f"Unexpected error: {str(e)}")  # Log unexpected errors
         return jsonify({'msg': 'An unexpected error occurred'}), 500
 
+
+# Login route
 @patient_bp.route('/login', methods=['POST'])
 def login():
     try:
@@ -142,3 +152,31 @@ protected_bp = Blueprint('protected_bp', __name__)
 def protected():
     current_user = get_jwt_identity()
     return jsonify(message=f"Hello {current_user}, you are accessing a protected route!")
+
+
+@patient_bp.route('/profile', methods=['GET'])
+@jwt_required()
+def get_patient_profile():
+    # . Get the logged-in user's ID from the JWT token
+    patient_id = get_jwt_identity()
+
+    # . Query the database for the patient
+    patient = Patient.query.get(patient_id)
+    if not patient:
+        return jsonify({"status": "error", "message": "Patient not found"}), 404
+
+    # . Define the expected response structure (right here)
+    response = {
+        "status": "success",
+        "data": {
+            "id": patient.id,
+            "fullname": patient.fullname,
+            "email": patient.email,
+            "phone_number": patient.phone_number,
+            "gender": patient.gender,
+            "birth_date": patient.birth_date.isoformat() if patient.birth_date else None
+        }
+    }
+
+    # 6. Return it as JSON
+    return jsonify(response), 200
