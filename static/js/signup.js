@@ -204,12 +204,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Show success message
-                    const signupSuccess = document.getElementById('signupSuccess');
-                    if (signupSuccess) {
-                        signupSuccess.style.display = 'block';
-                        signupForm.style.display = 'none';
-                    }
+                    // Show success modal instead of the previous approach
+                    const successModal = new bootstrap.Modal(document.getElementById('signupSuccessModal'));
+                    successModal.show();
+                    
+                    // Reset the form
+                    signupForm.reset();
                 } else {
                     alert(data.msg || 'Signup failed. Please try again.');
                 }

@@ -61,11 +61,7 @@
                            id="phone_number" 
                            class="form-control" 
                            placeholder="0 00 00 00 00" 
-                           required 
-                           pattern="[0-9 ]+" 
-                           minlength="12"
-                           maxlength="14"
-                           title="Please enter a valid phone number in the format: 0 XX XX XX XX">
+                           required>
                 </div>
                   
                 <button type="button" class="btn btn-custom mt-3" onclick="nextStep(1)">Next</button>
@@ -176,6 +172,27 @@
         }
     </script>
 
+    <!-- Add this modal at the end of the body, before the scripts -->
+    <div class="modal fade" id="signupSuccessModal" tabindex="-1" aria-labelledby="signupSuccessModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="signupSuccessModalLabel">Registration Successful</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Your account has been created successfully!</p>
+                    <p>You can now log in with your credentials.</p>
+                </div>
+                <div class="modal-footer">
+                    <a href="{{ url_for('patient_bp.login_page') }}" class="btn btn-primary">Go to Login</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Make sure Bootstrap JS is included -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>

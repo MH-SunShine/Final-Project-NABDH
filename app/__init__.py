@@ -71,6 +71,7 @@ def create_app():
     from app.routes.patient import protected_bp
     app.register_blueprint(protected_bp)
 
+
     # Register new blueprints
     # from app.routes.auth import auth_bp
     # app.register_blueprint(auth_bp, url_prefix='/auth')
