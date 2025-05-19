@@ -70,17 +70,17 @@
             <button class="header-icon-btn fullscreen-toggle">
                 <i class="fas fa-expand"></i>
             </button>
-            <div class="notification-wrapper">
-                <button class="header-icon-btn notification-btn">
-                <i class="fas fa-bell"></i>
-                <span class="notification-badge">5</span>
-            </button>
-                <div class="notification-dropdown">
-                    <div class="notification-header">
-                        <h3>Notifications</h3>
-                    </div>
-                </div>
-            </div>
+<!--            <div class="notification-wrapper">-->
+<!--                <button class="header-icon-btn notification-btn">-->
+<!--                <i class="fas fa-bell"></i>-->
+<!--                <span class="notification-badge">5</span>-->
+<!--            </button>-->
+<!--                <div class="notification-dropdown">-->
+<!--                    <div class="notification-header">-->
+<!--                        <h3>Notifications</h3>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
             <div class="user-profile-wrapper" onclick="toggleProfileDropdown(event)">
                 <div class="user-profile">
                     <img src="/static/images/default.png" onerror="this.onerror=null; this.src='/static/images/default.png';" alt="User profile" />
@@ -94,7 +94,7 @@
                             View Profile
                         </a>
                         <div class="menu-divider"></div>
-                        <a href="/templates/auth/loginpatient.html" class="profile-menu-item">
+                        <a href="#" class="profile-menu-item" onclick="logout(event)">
                             <i class="fas fa-sign-out-alt"></i>
                             Logout
                         </a>
@@ -249,7 +249,7 @@
                 <!-- Profile Image -->
                 <div style="margin-bottom: 25px; text-align: center;">
                     <img src="/static/images/default.png" 
-                         alt="Doctor Profile" 
+                         alt="Patient Profile"
                          id="viewProfileImage" 
                          style="width: 120px; height: 120px; border-radius: 50%; margin-bottom: 10px; object-fit: cover; border: 3px solid #1a73e8;" 
                          onerror="this.src='/static/images/default.png'">
@@ -277,6 +277,12 @@
                     <p id="viewPhone" style="font-size: 16px; color: #333; padding: 8px 0;">...</p>
                 </div>
 
+                <div class="info-group" style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #5f6368;">
+                        <i class="fas fa-calendar-alt"></i> Date of Birth
+                    </label>
+                    <p id="viewBirthDate" style="font-size: 16px; color: #333; padding: 8px 0;">...</p>
+                </div>
 
                 <div class="info-group" style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px; color: #5f6368;">
@@ -302,17 +308,101 @@
 
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
 
+    <script>
+        // Add this function to fetch and display profile data
+        function loadProfileData() {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                window.location.href = "/patient/login";
+                return;
+            }
+            
+            fetch('/patient/profile', {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch profile');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Profile data received:", data); // Debug log
+                if (data.status === 'success') {
+                    // Update profile display
+                    document.getElementById('labDisplayName').textContent = data.data.fullname;
+                    document.getElementById('patientDisplayName').textContent = data.data.fullname;
+                    
+                    // Update profile modal if it exists
+                    const viewFullNameElement = document.getElementById('viewFullName');
+                    if (viewFullNameElement) viewFullNameElement.textContent = data.data.fullname;
+                    
+                    const viewEmailElement = document.getElementById('viewEmail');
+                    if (viewEmailElement) viewEmailElement.textContent = data.data.email;
+                    
+                    const viewPhoneElement = document.getElementById('viewPhone');
+                    if (viewPhoneElement) viewPhoneElement.textContent = data.data.phone_number;
+                    
+                    // Add birth date and gender
+                    const viewBirthDateElement = document.getElementById('viewBirthDate');
+                    if (viewBirthDateElement) {
+                        // Format the date for better display
+                        const birthDate = new Date(data.data.birth_date);
+                        const formattedDate = birthDate.toLocaleDateString('en-US', {
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric'
+                        });
+                        viewBirthDateElement.textContent = formattedDate;
+                    }
+                    
+                    const viewGenderElement = document.getElementById('viewGender');
+                    if (viewGenderElement) {
+                        // Capitalize first letter of gender
+                        const gender = data.data.gender.charAt(0).toUpperCase() + data.data.gender.slice(1);
+                        viewGenderElement.textContent = gender;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading profile:', error);
+            });
+        }
 
+        // Call this function when the page loads
+        document.addEventListener('DOMContentLoaded', loadProfileData);
 
- <script>
-  // Retrieve the JWT token from localStorage
-  const jwtToken = localStorage.getItem("access_token");
+        function logout(event) {
+            if (event) {
+                event.preventDefault(); // Prevent default link behavior
+            }
+            
+            console.log("Logout function called"); // Debug log
+            
+            // Clear the JWT token from localStorage
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("user_type");
+            
+            // Redirect to the patient login page directly
+            window.location.href = "/patient/login";
+        }
 
-  // Optional: Check if it exists
-  if (!jwtToken) {
-    console.warn("No JWT token found. Redirecting to login.");
-    window.location.href = "/templates/auth/loginpatient.html";
-  }
-</script>
-</body>
+        // Make sure profile dropdown toggle works
+        function toggleProfileDropdown(event) {
+            event.stopPropagation();
+            const dropdown = document.querySelector('.profile-dropdown');
+            dropdown.classList.toggle('active');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.querySelector('.profile-dropdown');
+            if (dropdown && !event.target.closest('.user-profile-wrapper')) {
+                dropdown.classList.remove('active');
+            }
+        });
+    </script>
 </html>

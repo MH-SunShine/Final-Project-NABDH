@@ -73,7 +73,7 @@
             <button class="header-icon-btn fullscreen-toggle">
                 <i class="fas fa-expand"></i>
             </button>
-            <div class="notification-wrapper">
+            <!-- <div class="notification-wrapper">
                 <button class="header-icon-btn notification-btn">
                 <i class="fas fa-bell"></i>
                 <span class="notification-badge">5</span>
@@ -83,7 +83,7 @@
                         <h3>Notifications</h3>
                     </div>
                 </div>
-            </div>
+            </div> -->
             <div class="user-profile-wrapper" onclick="toggleProfileDropdown(event)">
                 <div class="user-profile">
                     <img src="/static/images/default.png" onerror="this.onerror=null; this.src='/static/images/default.png';" alt="User profile" />
@@ -97,7 +97,7 @@
                             View Profile
                         </a>
                         <div class="menu-divider"></div>
-                        <a href="/templates/auth/logindoctor.html" class="profile-menu-item">
+                        <a href="#" class="profile-menu-item" onclick="logout()">
                             <i class="fas fa-sign-out-alt"></i>
                             Logout
                         </a>
@@ -113,7 +113,7 @@
         <!-- Welcome Section -->
         <div class="welcome-section">
            <div class="welcome-text">
-                    <h1>Welcome back, <span class="doctor-name" id="labDisplayName">Dr.</span></h1>
+                    <h1>Welcome back, <span class="doctor-name" id="doctorDisplayName">Dr.</span></h1>
                     <p class="welcome-message">Here's your daily overview and upcoming appointments</p>
                 </div>
         </div>
@@ -163,7 +163,14 @@
                     <label style="display: block; margin-bottom: 5px; color: #5f6368;">
                         <i class="fas fa-phone-alt"></i> Phone Number
                     </label>
-                    <p id="viewPhone" style="font-size: 16px; color: #333; padding: 8px 0;">...</p>
+                    <p id="viewPhoneNumber" style="font-size: 16px; color: #333; padding: 8px 0;">...</p>
+                </div>
+                
+                <div class="info-group" style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; color: #5f6368;">
+                        <i class="fas fa-calendar-alt"></i> Birth Date
+                    </label>
+                    <p id="viewBirthDate" style="font-size: 16px; color: #333; padding: 8px 0;">...</p>
                 </div>
 
                 <div class="info-group" style="margin-bottom: 15px;">
@@ -194,7 +201,7 @@
     <!-- Add new sections after the dashboard-content div -->
     <div class="dashboard-content" id="upcoming-appointments-section" style="display: none;">
         <div class="section-header">
-            <h2>Upcoming Appointments</h2>
+            <h2>My Schedule</h2>
             <div class="filter-controls">
                 <select id="appointmentFilter" class="filter-select">
                     <option value="today">Today</option>
@@ -258,7 +265,7 @@
     <!-- Patient Management -->
     <div class="dashboard-content" id="patient-management-section" style="display: none;">
         <div class="section-header">
-            <h2>Patient Management</h2>
+            <h2>Patients Management</h2>
             <div class="search-controls">
                 <div class="filter-controls">
                     <select id="patientFilter" class="filter-select">
@@ -383,7 +390,180 @@
     <script src="/static/js/dashboard.js"></script>
     <script src="/static/js/dashboarddoctor.js"></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+    <script>
+        // Add this function to fetch and display profile data
+        function loadProfileData() {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                window.location.href = "/doctor/login";
+                return;
+            }
+            
+            fetch('/doctor/profile', {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch profile');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Doctor profile data received:", data); // Debug log
+                
+                // Log the entire data structure to see all available fields
+                console.log("Complete API response:", JSON.stringify(data, null, 2));
+                
+                if (data.status === 'success') {
+                    // Update profile display in header
+                    document.getElementById('labDisplayName').textContent = data.data.full_name;
+                    
+                    // Update welcome message
+                    const doctorDisplayName = document.getElementById('doctorDisplayName');
+                    if (doctorDisplayName) {
+                        doctorDisplayName.textContent = "Dr. " + data.data.full_name;
+                    }
+                    
+                    // Update profile modal fields
+                    document.getElementById('viewFullName').textContent = data.data.full_name || 'Not provided';
+                    document.getElementById('viewEmail').textContent = data.data.email || 'Not provided';
+                    document.getElementById('viewPhoneNumber').textContent = data.data.phone_number || 'Not provided';
+                    
+                    // Check all possible birthdate field names in the API response
+                    let birthDateValue = null;
+                    
+                    // Try different possible field names for birthdate
+                    if (data.data.birth_date) {
+                        birthDateValue = data.data.birth_date;
+                        console.log("Found birth_date:", birthDateValue);
+                    } else if (data.data.birthdate) {
+                        birthDateValue = data.data.birthdate;
+                        console.log("Found birthdate:", birthDateValue);
+                    } else if (data.data.date_of_birth) {
+                        birthDateValue = data.data.date_of_birth;
+                        console.log("Found date_of_birth:", birthDateValue);
+                    } else if (data.data.dob) {
+                        birthDateValue = data.data.dob;
+                        console.log("Found dob:", birthDateValue);
+                    }
+                    
+                    // Update the birthdate field
+                    const birthDateElement = document.getElementById('viewBirthDate');
+                    if (birthDateValue) {
+                        try {
+                            // Try parsing the date
+                            const birthDate = new Date(birthDateValue);
+                            
+                            if (!isNaN(birthDate.getTime())) {
+                                // Valid date - format it
+                                const formattedDate = birthDate.toLocaleDateString('en-US', {
+                                    year: 'numeric', 
+                                    month: 'long', 
+                                    day: 'numeric'
+                                });
+                                birthDateElement.textContent = formattedDate;
+                                console.log("Birth date formatted successfully:", formattedDate);
+                            } else {
+                                // If it's not a valid date object, just display the raw value
+                                console.log("Invalid date format, displaying raw value:", birthDateValue);
+                                birthDateElement.textContent = String(birthDateValue);
+                            }
+                        } catch (e) {
+                            console.error("Error formatting birth date:", e);
+                            birthDateElement.textContent = String(birthDateValue);
+                        }
+                    } else {
+                        console.log("No birth date data found in any expected field");
+                        birthDateElement.textContent = 'Not provided';
+                    }
+                    
+                    document.getElementById('viewSpecialty').textContent = data.data.Medical_specialty || 'Not provided';
+                    
+                    if (data.data.gender) {
+                        const gender = data.data.gender.charAt(0).toUpperCase() + data.data.gender.slice(1);
+                        document.getElementById('viewGender').textContent = gender;
+                    } else {
+                        document.getElementById('viewGender').textContent = 'Not provided';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading profile:', error);
+            });
+        }
 
+        // Call this function when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProfileData();
+            console.log("Profile data loading initiated");
+        });
+
+        // Also call it when opening the modal to ensure fresh data
+        function openViewModal(event) {
+            event.preventDefault();
+            console.log("Opening profile modal and refreshing data");
+            
+            // Debug: Log the current state of elements before updating
+            console.log("Current phone field:", document.getElementById('viewPhoneNumber').textContent);
+            console.log("Current birth date field:", document.getElementById('viewBirthDate').textContent);
+            
+            loadProfileData(); // Refresh data when opening modal
+            const modal = document.getElementById('viewProfileModal');
+            modal.style.display = 'block';
+            modal.offsetHeight; // Force reflow
+            modal.style.opacity = '1';
+            modal.querySelector('div').style.transform = 'translateY(0)';
+            document.querySelector('.profile-dropdown').classList.remove('active');
+        }
+
+        function logout() {
+            // Clear the JWT token from localStorage
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("user_type");
+            
+            // Redirect to the doctor login page directly
+            window.location.href = "/doctor/login";
+        }
+
+        // Function to open the view profile modal
+        function openViewModal(event) {
+            event.preventDefault();
+            const modal = document.getElementById('viewProfileModal');
+            modal.style.display = 'block';
+            modal.offsetHeight; // Force reflow
+            modal.style.opacity = '1';
+            modal.querySelector('div').style.transform = 'translateY(0)';
+            document.querySelector('.profile-dropdown').classList.remove('active');
+        }
+
+        // Function to close the view profile modal
+        function closeViewModal() {
+            const modal = document.getElementById('viewProfileModal');
+            modal.style.opacity = '0';
+            modal.querySelector('div').style.transform = 'translateY(-20px)';
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+
+        // Toggle profile dropdown
+        function toggleProfileDropdown(event) {
+            event.stopPropagation();
+            const dropdown = document.querySelector('.profile-dropdown');
+            dropdown.classList.toggle('active');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.querySelector('.profile-dropdown');
+            if (dropdown && !event.target.closest('.user-profile-wrapper')) {
+                dropdown.classList.remove('active');
+            }
+        });
+    </script>
 
 
 </body>

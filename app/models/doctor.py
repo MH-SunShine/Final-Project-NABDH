@@ -13,6 +13,7 @@ class Doctor(db.Model):
     phone_number = db.Column(db.String(100), unique=True, nullable=False)
     gender = db.Column(db.String(10), nullable=False)
     medical_specialty = db.Column(db.String(100), nullable=False)
+    birth_date = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def set_password(self, password):

@@ -3,6 +3,12 @@ from datetime import datetime, timezone
 from app import db
 
 
+class AppointmentStatus:
+    PENDING = "pending"
+    CONFIRMED = "confirmed"
+    CANCELLED = "canceled"
+
+
 class Patient(db.Model):
     __tablename__ = 'patient'
 

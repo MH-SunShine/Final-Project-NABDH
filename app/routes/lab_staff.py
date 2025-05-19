@@ -132,3 +132,30 @@ def login():
     except Exception as e:
         logging.error(f'Login error: {str(e)}')
         return jsonify({'error': 'An unexpected error occurred'}), 500
+
+
+@lab_staff_bp.route('/profile', methods=['GET'])
+@jwt_required()
+def get_lab_profile():
+    # . Get the logged-in user's ID from the JWT token
+    lab_id = get_jwt_identity()
+
+    # . Query the database
+    lab = LabStaff.query.get(lab_id)
+    if not lab:
+        return jsonify({"status": "error", "message": "Laboratory not found"}), 404
+
+    # . the expected response structure 
+    response = {
+        "status": "success",
+        "data": {
+            "id": lab.id,
+            "lab_name": lab.lab_name,
+            "email": lab.email,
+            "phone_number": lab.phone_number,
+            "address": lab.address
+        }
+    }
+
+    # 6. Return it as JSON
+    return jsonify(response), 200

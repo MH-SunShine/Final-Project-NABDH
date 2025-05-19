@@ -132,3 +132,32 @@ def login():
     except Exception as e:
         logging.error(f'Login error: {str(e)}')
         return jsonify({'error': 'An unexpected error occurred'}), 500
+
+
+@doctor_bp.route('/profile', methods=['GET'])
+@jwt_required()
+def get_doctor_profile():
+    # . Get the logged-in user's ID from the JWT token
+    doctor_id = get_jwt_identity()
+
+    # . Query the database for the doctor according to the id
+    doctor = Doctor.query.get(doctor_id)
+    if not doctor:
+        return jsonify({"status": "error", "message": "Doctor not found"}), 404
+
+    # . the expected response structure 
+    response = {
+        "status": "success",
+        "data": {
+            "id": doctor.id,
+            "full_name": doctor.fullname,
+            "email": doctor.email,
+            "phone_number": doctor.phone_number,
+            "Medical_specialty": doctor.medical_specialty,
+            "gender": doctor.gender,
+            "birth_date": doctor.birth_date.isoformat() if doctor.birth_date else None
+        }
+    }
+
+    # 6. Return it as JSON
+    return jsonify(response), 200

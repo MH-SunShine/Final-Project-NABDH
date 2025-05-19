@@ -1,5 +1,8 @@
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for
-from app.models.patient import Patient
+from app.models.patient import Patient, AppointmentStatus
+from app.models.doctor_availability import DoctorAvailability
+from app.models.doctor import Doctor
+from app.models.appointment import Appointment
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from app import db
 from datetime import timedelta, datetime
@@ -180,3 +183,150 @@ def get_patient_profile():
 
     # 6. Return it as JSON
     return jsonify(response), 200
+
+
+@patient_bp.route('/apt/book', methods=['POST'])
+@jwt_required()
+def book_appointment():
+    data = request.get_json()
+    doctor_name = data.get('doctor_name')
+    specialty = data.get('medical_specialty')
+    date_str = data.get('date')  # f:"2025-05-18"
+    time_str = data.get('time')  # f:"14:00"
+
+    # Step 1: Validate input
+    if not all([doctor_name, specialty, date_str, time_str]):
+        return jsonify({"status": "error", "message": "Missing required fields"}), 400
+
+    try:
+        appointment_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        appointment_time = datetime.strptime(time_str, "%H:%M").time()
+    except ValueError:
+        return jsonify({"status": "error", "message": "Invalid date or time format"}), 400
+
+    # Step 2: Find doctor by name and specialty + get its id
+    doctor = Doctor.query.filter_by(fullname=doctor_name, medical_specialty=specialty).first()
+    if not doctor:
+        return jsonify({"status": "error", "message": "Doctor not found"}), 404
+
+    # Step 3: Check availability for that day of week
+    day_of_week = appointment_date.strftime("%A")  # e.g., 'Monday'
+    availability = DoctorAvailability.query.filter_by(doctor_id=doctor.id, day_of_week=day_of_week).first()
+
+    if not availability:
+        return jsonify({"status": "error", "message": f"{doctor_name} is not available on {day_of_week}"}), 400
+
+    # Check if time is within availability window (doctor's working hours)
+    if not (availability.start_time <= appointment_time < availability.end_time):
+        return jsonify({"status": "error", "message": "Selected time is outside doctor's working hours"}), 400
+
+    # Step 4: Check for duplicates (if already booked: same doctor-day-time)
+
+    # existing = Appointment.query.filter_by(
+    #     doctor_id=doctor.id,
+    #     patient_id=get_jwt_identity(),
+    # ).join(Patient).filter(
+    #     Appointment.status == 'scheduled',
+    #     db.func.date(Appointment.created_at) == appointment_date,
+    #     db.func.time(Appointment.created_at) == appointment_time
+    # ).first()
+
+#  checks if there's any appointment starting in that 30-minute block,
+#  safer and more realistic than filtering by exact timestamp.
+    slot_start = datetime.combine(appointment_date, appointment_time)
+    slot_end = slot_start + timedelta(minutes=30)  # 30mn for each slot
+
+    existing = Appointment.query.filter(
+        Appointment.doctor_id == doctor.id,
+        Appointment.status == 'scheduled',
+        Appointment.created_at >= slot_start,
+        Appointment.created_at < slot_end
+    ).first()
+    if existing:
+        return jsonify({"status": "error", "message": "This slot is already booked"}), 409
+
+    # Step 5: Save appointment
+    new_appointment = Appointment(
+        patient_id=get_jwt_identity(),
+        doctor_id=doctor.id,
+        status=AppointmentStatus.PENDING,
+        created_at=datetime.combine(appointment_date, appointment_time)
+    )
+    db.session.add(new_appointment)
+    db.session.commit()
+
+    return jsonify({
+        "status": "success",
+        "message": f"Appointment booked with Dr. {doctor.fullname} ({doctor.medical_specialty}) on {date_str} at {time_str}"
+    }), 201
+
+
+@patient_bp.route('/apt/view', methods=['GET'])
+@jwt_required()
+def view_my_appointments():
+    patient_id = get_jwt_identity()
+
+    # 1: Get all pending appointments for this patient
+    appointments = (
+        db.session.query(Appointment, Doctor)
+        .join(Doctor, Appointment.doctor_id == Doctor.id)
+        .filter(
+            Appointment.patient_id == patient_id,
+            Appointment.status == 'pending'
+        )
+        .order_by(Appointment.created_at.asc())
+        .all()
+    )
+
+    # 2: Format response (according to front table)
+    result = []
+    for appointment, doctor in appointments:
+        start_time = appointment.created_at.time()
+        end_time = (appointment.created_at + timedelta(minutes=30)).time()
+
+        result.append({
+            "appointment_id": appointment.id,
+            "doctor_name": doctor.fullname,
+            "specialty": doctor.medical_specialty,
+            "date": appointment.created_at.strftime('%d/%m/%Y'),
+            "time_range": f"{start_time.strftime('%I:%M %p')} - {end_time.strftime('%I:%M %p')}",
+            "status": appointment.status
+        })
+
+    return jsonify({
+        "status": "success",
+        "appointments": result
+    }), 200
+
+
+@patient_bp.route('/apt/cancel/<int:appointment_id>', methods=['DELETE'])
+@jwt_required()
+def cancel_appointment(appointment_id):
+    patient_id = get_jwt_identity()
+
+    # 1: Get the appointment for this patient by its id
+    appointment = Appointment.query.filter_by(id=appointment_id, patient_id=patient_id).first()
+
+    if not appointment:
+        return jsonify({"status": "error", "message": "Appointment not found"}), 404
+
+    if appointment.status == "completed":
+        return jsonify({"status": "error", "message": "Completed appointments cannot be cancelled"}), 400
+
+    # 2: Mark as cancelled ( change status )
+    appointment.status = "canceled"
+    db.session.commit()
+
+    return jsonify({
+        "status": "success",
+        "message": f"Appointment on {appointment.created_at.strftime('%d/%m/%Y %H:%M')} was cancelled."
+    }), 200
+
+
+@patient_bp.route('/logout', methods=['GET'])
+def logout():
+    # No need to handle token invalidation server-side since we're using JWT
+    # The client will handle removing the token
+    return redirect(url_for('patient_bp.login_page'))
+
+
