@@ -188,77 +188,88 @@ def get_patient_profile():
 @patient_bp.route('/apt/book', methods=['POST'])
 @jwt_required()
 def book_appointment():
-    data = request.get_json()
-    doctor_name = data.get('doctor_name')
-    specialty = data.get('medical_specialty')
-    date_str = data.get('date')  # f:"2025-05-18"
-    time_str = data.get('time')  # f:"14:00"
-
-    # Step 1: Validate input
-    if not all([doctor_name, specialty, date_str, time_str]):
-        return jsonify({"status": "error", "message": "Missing required fields"}), 400
-
     try:
-        appointment_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-        appointment_time = datetime.strptime(time_str, "%H:%M").time()
-    except ValueError:
-        return jsonify({"status": "error", "message": "Invalid date or time format"}), 400
+        data = request.get_json()
+        logging.info(f"Booking appointment with data: {data}")
+        
+        doctor_name = data.get('doctor_name')
+        specialty = data.get('medical_specialty')
+        date_str = data.get('date')  # Format: "2025-05-18"
+        time_str = data.get('time')  # Format: "14:00"
 
-    # Step 2: Find doctor by name and specialty + get its id
-    doctor = Doctor.query.filter_by(fullname=doctor_name, medical_specialty=specialty).first()
-    if not doctor:
-        return jsonify({"status": "error", "message": "Doctor not found"}), 404
+        # Step 1: Validate input
+        if not all([doctor_name, specialty, date_str, time_str]):
+            logging.error(f"Missing required fields: {data}")
+            return jsonify({"status": "error", "message": "Missing required fields"}), 400
 
-    # Step 3: Check availability for that day of week
-    day_of_week = appointment_date.strftime("%A")  # e.g., 'Monday'
-    availability = DoctorAvailability.query.filter_by(doctor_id=doctor.id, day_of_week=day_of_week).first()
+        try:
+            appointment_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            appointment_time = datetime.strptime(time_str, "%H:%M").time()
+            logging.info(f"Parsed date: {appointment_date}, time: {appointment_time}")
+        except ValueError as e:
+            logging.error(f"Invalid date or time format: {e}")
+            return jsonify({"status": "error", "message": "Invalid date or time format"}), 400
 
-    if not availability:
-        return jsonify({"status": "error", "message": f"{doctor_name} is not available on {day_of_week}"}), 400
+        # Step 2: Find doctor by name and specialty
+        doctor = Doctor.query.filter_by(fullname=doctor_name, medical_specialty=specialty).first()
+        if not doctor:
+            logging.error(f"Doctor not found: {doctor_name}, {specialty}")
+            return jsonify({"status": "error", "message": "Doctor not found"}), 404
 
-    # Check if time is within availability window (doctor's working hours)
-    if not (availability.start_time <= appointment_time < availability.end_time):
-        return jsonify({"status": "error", "message": "Selected time is outside doctor's working hours"}), 400
+        # Step 3: Check availability for that day of week
+        day_of_week = appointment_date.strftime("%A")  # e.g., 'Monday'
+        availability = DoctorAvailability.query.filter_by(doctor_id=doctor.id, day_of_week=day_of_week).first()
 
-    # Step 4: Check for duplicates (if already booked: same doctor-day-time)
+        if not availability:
+            logging.error(f"Doctor {doctor_name} is not available on {day_of_week}")
+            return jsonify({"status": "error", "message": f"{doctor_name} is not available on {day_of_week}"}), 400
 
-    # existing = Appointment.query.filter_by(
-    #     doctor_id=doctor.id,
-    #     patient_id=get_jwt_identity(),
-    # ).join(Patient).filter(
-    #     Appointment.status == 'scheduled',
-    #     db.func.date(Appointment.created_at) == appointment_date,
-    #     db.func.time(Appointment.created_at) == appointment_time
-    # ).first()
+        # Check if time is within availability window (doctor's working hours)
+        if not (availability.start_time <= appointment_time < availability.end_time):
+            logging.error(f"Selected time {time_str} is outside doctor's working hours: {availability.start_time}-{availability.end_time}")
+            return jsonify({"status": "error", "message": "Selected time is outside doctor's working hours"}), 400
 
-#  checks if there's any appointment starting in that 30-minute block,
-#  safer and more realistic than filtering by exact timestamp.
-    slot_start = datetime.combine(appointment_date, appointment_time)
-    slot_end = slot_start + timedelta(minutes=30)  # 30mn for each slot
+        # Step 4: Check for duplicates (if already booked: same doctor-day-time)
+        slot_start = datetime.combine(appointment_date, appointment_time)
+        slot_end = slot_start + timedelta(minutes=30)  # 30mn for each slot
 
-    existing = Appointment.query.filter(
-        Appointment.doctor_id == doctor.id,
-        Appointment.status == 'scheduled',
-        Appointment.created_at >= slot_start,
-        Appointment.created_at < slot_end
-    ).first()
-    if existing:
-        return jsonify({"status": "error", "message": "This slot is already booked"}), 409
+        existing = Appointment.query.filter(
+            Appointment.doctor_id == doctor.id,
+            Appointment.status == AppointmentStatus.PENDING,
+            Appointment.created_at >= slot_start,
+            Appointment.created_at < slot_end
+        ).first()
+        
+        if existing:
+            logging.error(f"Slot already booked: {slot_start} - {slot_end}")
+            return jsonify({"status": "error", "message": "This slot is already booked"}), 409
 
-    # Step 5: Save appointment
-    new_appointment = Appointment(
-        patient_id=get_jwt_identity(),
-        doctor_id=doctor.id,
-        status=AppointmentStatus.PENDING,
-        created_at=datetime.combine(appointment_date, appointment_time)
-    )
-    db.session.add(new_appointment)
-    db.session.commit()
+        # Step 5: Save appointment
+        patient_id = get_jwt_identity()
+        logging.info(f"Creating appointment for patient {patient_id} with doctor {doctor.id}")
+        
+        new_appointment = Appointment(
+            patient_id=patient_id,
+            doctor_id=doctor.id,
+            status=AppointmentStatus.PENDING,
+            created_at=slot_start
+        )
+        db.session.add(new_appointment)
+        db.session.commit()
+        
+        logging.info(f"Appointment created successfully with ID: {new_appointment.id}")
 
-    return jsonify({
-        "status": "success",
-        "message": f"Appointment booked with Dr. {doctor.fullname} ({doctor.medical_specialty}) on {date_str} at {time_str}"
-    }), 201
+        return jsonify({
+            "status": "success",
+            "message": f"Appointment booked with Dr. {doctor.fullname} ({doctor.medical_specialty}) on {date_str} at {time_str}",
+            "appointment_id": new_appointment.id
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error booking appointment: {str(e)}")
+        traceback.print_exc()
+        return jsonify({"status": "error", "message": f"An error occurred: {str(e)}"}), 500
 
 
 @patient_bp.route('/apt/view', methods=['GET'])
@@ -328,5 +339,54 @@ def logout():
     # No need to handle token invalidation server-side since we're using JWT
     # The client will handle removing the token
     return redirect(url_for('patient_bp.login_page'))
+
+
+@patient_bp.route('/doctors/available', methods=['GET'])
+@jwt_required()
+def get_available_doctors():
+    try:
+        logging.info("Fetching doctors with availability")
+        
+        # Get all doctors from the database
+        doctors = Doctor.query.all()
+        logging.info(f"Found {len(doctors)} doctors")
+        
+        # Format the response with availability
+        doctors_list = []
+        for doctor in doctors:
+            # Get doctor's availability
+            availabilities = DoctorAvailability.query.filter_by(doctor_id=doctor.id).all()
+            
+            # Format availability for frontend
+            availability_data = []
+            for avail in availabilities:
+                availability_data.append({
+                    "day": avail.day_of_week,
+                    "start_time": avail.start_time.strftime('%H:%M'),
+                    "end_time": avail.end_time.strftime('%H:%M')
+                })
+            
+            doctors_list.append({
+                "id": doctor.id,
+                "name": doctor.fullname,
+                "specialty": doctor.medical_specialty,
+                "email": doctor.email,
+                "phone": doctor.phone_number,
+                "availability": availability_data
+            })
+        
+        return jsonify({
+            "status": "success",
+            "doctors": doctors_list
+        }), 200
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        logging.error(f"Error fetching doctors with availability: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": "Failed to fetch doctors",
+            "error": str(e)
+        }), 500
 
 

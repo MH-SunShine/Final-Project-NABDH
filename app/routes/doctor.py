@@ -4,7 +4,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from app import db
 from app.models.doctor import Doctor
 from app.models.pending_verification import PendingVerification
-from datetime import timedelta
+from datetime import timedelta, datetime
 import logging
 
 doctor_bp = Blueprint('doctor_bp', __name__, url_prefix='/doctor')
@@ -161,3 +161,44 @@ def get_doctor_profile():
 
     # 6. Return it as JSON
     return jsonify(response), 200
+
+@doctor_bp.route('/availability/set', methods=['POST'])
+@jwt_required()
+def set_availability():
+    try:
+        doctor_id = get_jwt_identity()
+        data = request.json
+        
+        if not data or 'availabilities' not in data:
+            return jsonify({"status": "error", "message": "Invalid data format"}), 400
+        
+        # Delete existing availabilities
+        DoctorAvailability.query.filter_by(doctor_id=doctor_id).delete()
+        
+        # Add new availabilities
+        for avail in data['availabilities']:
+            if 'day' not in avail or 'start_time' not in avail or 'end_time' not in avail:
+                continue
+                
+            new_avail = DoctorAvailability(
+                doctor_id=doctor_id,
+                day_of_week=avail['day'],
+                start_time=datetime.strptime(avail['start_time'], '%H:%M').time(),
+                end_time=datetime.strptime(avail['end_time'], '%H:%M').time()
+            )
+            db.session.add(new_avail)
+        
+        db.session.commit()
+        
+        return jsonify({
+            "status": "success",
+            "message": "Availability updated successfully"
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error setting availability: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": "Failed to update availability",
+            "error": str(e)
+        }), 500
