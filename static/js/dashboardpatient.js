@@ -1404,4 +1404,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (document.getElementById('view-appointments-section')) {
         loadAppointments();
     }
+});
 
+});
+
+});
+
+});

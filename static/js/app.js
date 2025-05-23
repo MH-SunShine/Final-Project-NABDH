@@ -1,12 +1,12 @@
 // for navbar scroll
-// window.addEventListener("scroll", function(){
-// var navbar = document.getElementById("navbar"); //get the navbar 
-// if(window.scrollY > 50 ){
-//   navbar.classList.add("scrolled"); //add to class
-// }else{
-//   navbar.classList.remove("scrolled"); // remove from class
-// }
-// })
+ window.addEventListener("scroll", function(){
+var navbar = document.getElementById("navbar"); //get the navbar 
+if(window.scrollY > 50 ){
+  navbar.classList.add("scrolled"); //add to class
+}else{
+  navbar.classList.remove("scrolled"); // remove from class
+ }
+ })
 
 //for sign up
 function prevStep(currentStep) {
