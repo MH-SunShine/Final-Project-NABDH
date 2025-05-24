@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Medical Summary</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f5f7fa;
+      margin: 0;
+      padding: 2rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .card {
+      background-color: #fff;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      padding: 2rem;
+      max-width: 700px;
+      width: 100%;
+    }
+
+    .card h2 {
+      color: #2a4365;
+      margin-bottom: 1rem;
+      font-size: 1.75rem;
+    }
+
+    .card section {
+      margin-bottom: 1.8rem;
+    }
+
+    .card h3 {
+      color: #4a5568;
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .card ul {
+      list-style: disc;
+      padding-left: 1.2rem;
+    }
+
+    .card li {
+      margin-bottom: 0.5rem;
+      line-height: 1.6;
+    }
+
+    .highlight {
+      font-weight: 600;
+      color: #1a202c;
+    }
+
+    .tag {
+      background-color: #edf2f7;
+      color: #2c5282;
+      padding: 0.2rem 0.6rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-left: 0.4rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>🩺 Medical Summary</h2>
+
+    <section>
+      <h3>🧬 Abnormal Markers</h3>
+      <ul>
+        <li><span class="highlight">Lbxscr</span> (Creatinine level): <span class="tag">↓ Decreased</span> – may indicate kidney function impairment or renal issue.</li>
+        <li><span class="highlight">Lbxsgb</span> (Globulin level): <span class="tag">↑ Increased</span> – may suggest liver damage, inflammation, or certain types of cancer.</li>
+        <li><span class="highlight">Lbdscrsi</span> (Serum creatinine): <span class="tag">↓ Decreased</span> – may indicate kidney function impairment or renal issue.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h3>🩺 Likely Diagnosis</h3>
+      <p>The patient is likely experiencing <strong>kidney function impairment</strong>, possibly associated with underlying <strong>liver damage or inflammation</strong>.</p>
+    </section>
+
+    <section>
+      <h3>🧪 Recommended Follow-up Tests</h3>
+      <ul>
+        <li><strong>Urinalysis</strong> – to assess kidney function and detect signs of infection or damage.</li>
+        <li><strong>Liver Function Tests (LFTs)</strong> – to evaluate liver health and assess inflammation or injury.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h3>🩺 Medical Recommendations</h3>
+      <ul>
+        <li><strong>Dietary adjustments</strong> – to manage kidney function and reduce renal load.</li>
+        <li><strong>Regular follow-ups</strong> – to monitor patient status and optimize treatment strategy.</li>
+      </ul>
+    </section>
+  </div>
+</body>
+</html>
