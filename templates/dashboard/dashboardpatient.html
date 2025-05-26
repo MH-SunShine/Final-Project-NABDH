@@ -119,21 +119,23 @@
 
     <!-- Book Appointment Section -->
     <div class="dashboard-content" id="book-appointments-section" style="display: none;">
-        <h2>Book New Appointment</h2>
+        <div class="section-header">
+            <h2>Book New Appointment</h2>
+        </div>
         
         <!-- Progress Steps -->
         <div class="progress-steps">
-            <div class="step">
-                <div class="step-number" id="step1-number">1</div>
-                <div class="step-text" id="step1-text">Select a Doctor</div>
+            <div class="step active">
+                <div class="step-circle">1</div>
+                <div class="step-text">Select a Doctor</div>
             </div>
             <div class="step">
-                <div class="step-number inactive" id="step2-number">2</div>
-                <div class="step-text inactive" id="step2-text">Select Date and Time</div>
+                <div class="step-circle">2</div>
+                <div class="step-text">Select Date and Time</div>
             </div>
             <div class="step">
-                <div class="step-number inactive" id="step3-number">3</div>
-                <div class="step-text inactive" id="step3-text">Confirm Details</div>
+                <div class="step-circle">3</div>
+                <div class="step-text">Confirm Details</div>
             </div>
         </div>
         
@@ -142,7 +144,7 @@
             <!-- Step 1: Select Doctor -->
             <div class="form-step active" id="step1">
                 <h3>Select a Doctor</h3>
-                <p>Choose a Doctor</p>
+                <p>Choose a doctor for your appointment</p>
                 
                 <div class="form-group">
                     <select id="doctorSelect" class="form-control">
@@ -160,12 +162,64 @@
             
             <!-- Step 2: Select Date and Time -->
             <div class="form-step" id="step2">
-                <!-- Content for step 2 -->
+                <h3>Select Available Time</h3>
+                <p id="doctorNameDisplay">Choose a convenient time for your appointment</p>
+                
+                <div class="form-group">
+                    <label for="appointmentDate">Date</label>
+                    <input type="date" id="appointmentDate" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="appointmentTime">Time</label>
+                    <select id="appointmentTime" class="form-control" required>
+                        <option value="">-- Select a Time --</option>
+                        <!-- Time slots will be loaded dynamically -->
+                    </select>
+                </div>
+                
+                <div class="step-actions">
+                    <button id="backToStep1" class="btn-back">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <button id="nextToStep3" class="btn-next" disabled>
+                        Next <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
             </div>
             
             <!-- Step 3: Confirm Details -->
             <div class="form-step" id="step3">
-                <!-- Content for step 3 -->
+                <h3>Confirm Details</h3>
+                <p>Please review your appointment details</p>
+                
+                <div class="confirmation-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Doctor:</span>
+                        <span id="confirmDoctorName" class="detail-value"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Specialty:</span>
+                        <span id="confirmSpecialty" class="detail-value"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Date:</span>
+                        <span id="confirmDate" class="detail-value"></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Time:</span>
+                        <span id="confirmTime" class="detail-value"></span>
+                    </div>
+                </div>
+                
+                <div class="step-actions">
+                    <button id="backToStep2" class="btn-back">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <button id="confirmBooking" class="btn-confirm">
+                        Confirm Booking
+                    </button>
+                </div>
             </div>
         </div>
     </div>

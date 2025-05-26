@@ -389,4 +389,69 @@ def get_available_doctors():
             "error": str(e)
         }), 500
 
+    data = request.get_json()
+    doctor_id = data.get('doctor_id')
+    date_str = data.get('date')  # Expecting format: 'YYYY-MM-DD'
+
+    # Call your logic to fetch available time slots using the bitmap index
+    available_slots = get_bitmap_available_slots(doctor_id, date_str)
+
+    return jsonify({
+        'status': 'success',
+        'slots': available_slots  # e.g. ['09:00', '09:30', '10:00']
+    }), 200
+
+@patient_bp.route('/apt/timeslots', methods=['POST'])
+@jwt_required()
+def get_available_time_slots():
+    data = request.get_json()
+    doctor_id = data.get('doctor_id')
+    selected_date = data.get('date')  # Format: YYYY-MM-DD
+
+    if not doctor_id or not selected_date:
+        return jsonify({"status": "error", "message": "Missing doctor or date"}), 400
+
+    try:
+        # Parse date and get day of week
+        date_obj = datetime.strptime(selected_date, "%Y-%m-%d")
+        day_name = date_obj.strftime("%A").lower()  # e.g., "monday"
+
+        # Get doctor's availability for that day
+        availability = DoctorAvailability.query.filter_by(
+            doctor_id=doctor_id,
+            day_of_week=day_name
+        ).first()
+
+        if not availability:
+            return jsonify({"status": "success", "slots": []}), 200
+
+        # Generate 30-min slots from start to end time
+        start_time = availability.start_time
+        end_time = availability.end_time
+
+        slots = []
+        current_time = datetime.combine(date_obj.date(), start_time)
+        end_datetime = datetime.combine(date_obj.date(), end_time)
+
+        while current_time + timedelta(minutes=30) <= end_datetime:
+            slots.append(current_time.strftime("%H:%M"))
+            current_time += timedelta(minutes=30)
+
+        # Get already booked appointments on that day
+        booked = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.status.in_(["pending", "confirmed"]),
+            db.func.date(Appointment.created_at) == date_obj.date()
+        ).all()
+
+        booked_times = set([a.created_at.strftime("%H:%M") for a in booked])
+
+        # Filter out booked slots
+        available_slots = [slot for slot in slots if slot not in booked_times]
+
+        return jsonify({"status": "success", "slots": available_slots}), 200
+
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({"status": "error", "message": "Internal error"}), 500
 

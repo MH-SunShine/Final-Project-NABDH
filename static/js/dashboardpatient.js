@@ -161,37 +161,8 @@ function loadProfileData() {
 function setupAppointmentBooking() {
     console.log('Setting up appointment booking');
     
-    // Load doctors for appointment booking
-    const doctorSelect = document.getElementById('doctorSelect');
-    if (doctorSelect) {
-        loadDoctors();
-        
-        // Add event listener for doctor selection
-        doctorSelect.addEventListener('change', function() {
-            if (this.value) {
-                const selectedOption = this.options[this.selectedIndex];
-                try {
-                    selectedDoctor = JSON.parse(selectedOption.getAttribute('data-doctor'));
-                    
-                    // Enable next button
-                    const nextBtn = document.getElementById('nextToStep2');
-                    if (nextBtn) nextBtn.disabled = false;
-                    
-                    console.log('Selected doctor:', selectedDoctor);
-                } catch (e) {
-                    console.error('Error parsing doctor data:', e);
-                }
-            } else {
-                selectedDoctor = null;
-                
-                // Disable next button
-                const nextBtn = document.getElementById('nextToStep2');
-                if (nextBtn) nextBtn.disabled = true;
-            }
-        });
-    } else {
-        console.error('Doctor select element not found');
-    }
+    // Load doctors for the dropdown
+    loadDoctors();
     
     // Set up step navigation buttons
     setupStepNavigation();
@@ -211,16 +182,13 @@ function loadDoctors() {
         return;
     }
     
-    // Clear existing options
-    doctorSelect.innerHTML = '<option value="">-- Select a Doctor --</option>';
-    
-    // Show loading in select
+    // Show loading state
     const loadingOption = document.createElement('option');
     loadingOption.textContent = 'Loading doctors...';
     loadingOption.disabled = true;
+    doctorSelect.innerHTML = '';
     doctorSelect.appendChild(loadingOption);
-    
-    console.log('Fetching doctors from API...');
+    doctorSelect.disabled = true;
     
     // Get token from localStorage
     const token = localStorage.getItem('access_token');
@@ -256,6 +224,7 @@ function loadDoctors() {
         
         // Remove loading option
         doctorSelect.innerHTML = '<option value="">-- Select a Doctor --</option>';
+        doctorSelect.disabled = false;
         
         if (data.status === 'success' && data.doctors && data.doctors.length > 0) {
             // Add doctors to select dropdown
@@ -263,17 +232,46 @@ function loadDoctors() {
                 const option = document.createElement('option');
                 option.value = doctor.id;
                 option.textContent = `${doctor.name} - ${doctor.specialty}`;
-                option.setAttribute('data-doctor', JSON.stringify(doctor));
+                // Store doctor data as a data attribute
+                option.dataset.doctor = JSON.stringify({
+                    id: doctor.id,
+                    name: doctor.name,
+                    specialty: doctor.specialty,
+                    availability: doctor.availability
+                });
                 doctorSelect.appendChild(option);
             });
-            console.log(`Added ${data.doctors.length} doctors to dropdown`);
+            
+            // Add change event listener
+            doctorSelect.addEventListener('change', function() {
+                if (this.value) {
+                    // Get selected doctor data from data attribute
+                    const selectedOption = this.options[this.selectedIndex];
+                    try {
+                        selectedDoctor = JSON.parse(selectedOption.dataset.doctor);
+                        console.log('Selected doctor:', selectedDoctor);
+                        
+                        // Enable next button
+                        const nextBtn = document.getElementById('nextToStep2');
+                        if (nextBtn) nextBtn.disabled = false;
+                    } catch (e) {
+                        console.error('Error parsing doctor data:', e);
+                        selectedDoctor = null;
+                    }
+                } else {
+                    selectedDoctor = null;
+                    
+                    // Disable next button
+                    const nextBtn = document.getElementById('nextToStep2');
+                    if (nextBtn) nextBtn.disabled = true;
+                }
+            });
         } else {
             // No doctors found
             const noDocsOption = document.createElement('option');
             noDocsOption.textContent = 'No doctors available';
             noDocsOption.disabled = true;
             doctorSelect.appendChild(noDocsOption);
-            console.warn('No doctors returned from API');
         }
     })
     .catch(error => {
@@ -281,6 +279,7 @@ function loadDoctors() {
         
         // Reset dropdown with error message
         doctorSelect.innerHTML = '<option value="">-- Select a Doctor --</option>';
+        doctorSelect.disabled = false;
         const errorOption = document.createElement('option');
         errorOption.textContent = 'Error loading doctors';
         errorOption.disabled = true;
@@ -306,9 +305,9 @@ function setupStepNavigation() {
         nextToStep2Btn.addEventListener('click', function() {
             if (selectedDoctor) {
                 // Update doctor name in step 2
-                const doctorNameEl = document.getElementById('selectedDoctorName');
+                const doctorNameEl = document.getElementById('doctorNameDisplay');
                 if (doctorNameEl) {
-                    doctorNameEl.textContent = selectedDoctor.name;
+                    doctorNameEl.textContent = `Choose a convenient time for your appointment with Dr. ${selectedDoctor.name}`;
                 }
                 
                 // Show step 2, hide step 1
@@ -321,15 +320,13 @@ function setupStepNavigation() {
                     // Update progress indicator
                     updateProgressIndicator(2);
                     
-                    // Generate available time slots
-                    generateTimeSlots();
+                    // Set up date input with min date
+                    setupDateInput();
                 } else {
                     console.error('Step elements not found');
                 }
             }
         });
-    } else {
-        console.log('Next to step 2 button not found');
     }
     
     // Step 2 to Step 3
@@ -410,124 +407,182 @@ function updateProgressIndicator(step) {
     });
 }
 
-// Generate available time slots based on doctor's schedule
-function generateTimeSlots() {
-    const dateInput = document.getElementById('availableDate');
-    const timeSelect = document.getElementById('availableTime');
-    
-    if (!dateInput || !timeSelect || !selectedDoctor) {
-        console.error('Date, time elements, or selected doctor not found');
+// Set up date input with min date and event listener
+function setupDateInput() {
+    const dateInput = document.getElementById('appointmentDate');
+    if (!dateInput) {
+        console.error('Date input element not found');
         return;
     }
     
-    // Enable date selection
-    dateInput.disabled = false;
+    // Set min date to today
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    dateInput.min = `${yyyy}-${mm}-${dd}`;
+    dateInput.value = `${yyyy}-${mm}-${dd}`; // Set default value to today
     
-    // Set min date to tomorrow
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    dateInput.min = tomorrow.toISOString().split('T')[0];
+    // Clear any existing event listeners
+    const newDateInput = dateInput.cloneNode(true);
+    dateInput.parentNode.replaceChild(newDateInput, dateInput);
     
-    // Set max date to 30 days from now
-    const maxDate = new Date();
-    maxDate.setDate(maxDate.getDate() + 30);
-    dateInput.max = maxDate.toISOString().split('T')[0];
-    
-    // Add event listener for date selection
-    dateInput.addEventListener('change', function() {
-        // Get selected date
-        const selectedDate = new Date(this.value);
-        const dayOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][selectedDate.getDay()];
-        
-        // Clear existing options
-        timeSelect.innerHTML = '<option value="">-- Select a Time --</option>';
-        
-        // Check if doctor has availability for this day
-        if (!selectedDoctor.availability || selectedDoctor.availability.length === 0) {
-            // If no availability data, use default hours (9 AM to 5 PM)
-            timeSelect.disabled = false;
-            
-            for (let hour = 9; hour < 17; hour++) {
-                for (let minute of [0, 30]) {
-                    const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                    const option = document.createElement('option');
-                    option.value = timeStr;
-                    
-                    // Format for display (12-hour format)
-                    const displayHour = hour % 12 || 12;
-                    const ampm = hour < 12 ? 'AM' : 'PM';
-                    option.textContent = `${displayHour}:${minute.toString().padStart(2, '0')} ${ampm}`;
-                    
-                    timeSelect.appendChild(option);
-                }
-            }
-        } else {
-            // Find availability for this day
-            const dayAvailability = selectedDoctor.availability.find(a => a.day.toLowerCase() === dayOfWeek.toLowerCase());
-            
-            if (!dayAvailability) {
-                const noSlotsOption = document.createElement('option');
-                noSlotsOption.textContent = `Doctor not available on ${dayOfWeek}`;
-                noSlotsOption.disabled = true;
-                timeSelect.appendChild(noSlotsOption);
-                timeSelect.disabled = true;
-                return;
-            }
-            
-            // Enable time selection
-            timeSelect.disabled = false;
-            
-            // Generate time slots based on doctor's schedule
-            const startTime = dayAvailability.start_time.split(':');
-            const endTime = dayAvailability.end_time.split(':');
-            
-            const startHour = parseInt(startTime[0]);
-            const startMinute = parseInt(startTime[1]);
-            const endHour = parseInt(endTime[0]);
-            const endMinute = parseInt(endTime[1]);
-            
-            // Generate 30-minute slots
-            for (let hour = startHour; hour <= endHour; hour++) {
-                for (let minute of [0, 30]) {
-                    // Skip times before start time or after end time
-                    if (hour === startHour && minute < startMinute) continue;
-                    if (hour === endHour && minute >= endMinute) continue;
-                    
-                    const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                    const option = document.createElement('option');
-                    option.value = timeStr;
-                    
-                    // Format for display (12-hour format)
-                    const displayHour = hour % 12 || 12;
-                    const ampm = hour < 12 ? 'AM' : 'PM';
-                    option.textContent = `${displayHour}:${minute.toString().padStart(2, '0')} ${ampm}`;
-                    
-                    timeSelect.appendChild(option);
-                }
-            }
-        }
-        
-        // Add event listener for time selection
-        timeSelect.addEventListener('change', function() {
-            if (this.value) {
-                selectedSlot = {
-                    date: dateInput.value,
-                    time: this.value,
-                    display: this.options[this.selectedIndex].textContent
-                };
-                
-                // Enable next button
-                const nextBtn = document.getElementById('nextToStep3');
-                if (nextBtn) nextBtn.disabled = false;
-            } else {
-                selectedSlot = null;
-                
-                // Disable next button
-                const nextBtn = document.getElementById('nextToStep3');
-                if (nextBtn) nextBtn.disabled = true;
-            }
-        });
+    // Add event listener for date change
+    newDateInput.addEventListener('change', function() {
+        generateTimeSlots(this.value);
     });
+    
+    // Trigger time slot generation for today's date
+    generateTimeSlots(`${yyyy}-${mm}-${dd}`);
+}
+
+// Generate available time slots based on selected date
+function generateTimeSlots(selectedDate) {
+    const timeSelect = document.getElementById('appointmentTime');
+
+    if (!timeSelect || !selectedDoctor) {
+        console.error('Time select element or selected doctor not found');
+        return;
+    }
+
+    if (!selectedDate) {
+        console.warn('No date selected');
+        return;
+    }
+
+    // Reset previous options and show loading state
+    timeSelect.innerHTML = '<option value="">Loading available times...</option>';
+    timeSelect.disabled = true;
+
+    console.log('Fetching available slots for doctor:', selectedDoctor.id, 'on', selectedDate);
+
+    // Get token from localStorage
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        console.error('No access token found');
+        timeSelect.innerHTML = '<option value="">-- Select a Time --</option>';
+        const errorOption = document.createElement('option');
+        errorOption.textContent = 'Please log in again';
+        errorOption.disabled = true;
+        timeSelect.appendChild(errorOption);
+        return;
+    }
+
+    // Use a direct API call to get time slots instead of the complex route
+    // This is a simplified approach to fix the immediate issue
+    fetch('/patient/apt/timeslots', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({
+            doctor_id: selectedDoctor.id,
+            date: selectedDate
+        })
+    })
+    .then(response => {
+        if (response.status === 401) {
+            throw new Error('Unauthorized');
+        }
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Time slots received:', data);
+
+        // Reset time select
+        timeSelect.innerHTML = '<option value="">-- Select a Time --</option>';
+        timeSelect.disabled = false;
+
+        if (data.status === 'success' && data.slots && data.slots.length > 0) {
+            // Add time slots
+            data.slots.forEach(slot => {
+                const option = document.createElement('option');
+                option.value = slot;
+                
+                // Format slot time to AM/PM
+                const [hour, minute] = slot.split(':');
+                const h = parseInt(hour);
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                const displayHour = h % 12 || 12;
+                option.textContent = `${displayHour}:${minute} ${ampm}`;
+                
+                timeSelect.appendChild(option);
+            });
+        } else {
+            // If no slots returned or API doesn't work, generate some default slots
+            // This is a fallback to ensure something is displayed
+            generateDefaultTimeSlots(timeSelect, selectedDate);
+        }
+    })
+    .catch(error => {
+        console.error('Error loading time slots:', error);
+        
+        // Generate default time slots as a fallback
+        generateDefaultTimeSlots(timeSelect, selectedDate);
+        
+        if (error.message === 'Unauthorized') {
+            showAlert('error', 'Your session has expired. Please log in again.');
+            logout();
+        }
+    });
+
+    // Remove any existing event listeners to prevent duplicates
+    const newTimeSelect = timeSelect.cloneNode(true);
+    timeSelect.parentNode.replaceChild(newTimeSelect, timeSelect);
+    
+    // Add event listener to the new select element
+    newTimeSelect.addEventListener('change', function() {
+        if (this.value) {
+            selectedSlot = {
+                date: selectedDate,
+                time: this.value,
+                display: this.options[this.selectedIndex].textContent
+            };
+
+            // Enable next button
+            const nextBtn = document.getElementById('nextToStep3');
+            if (nextBtn) nextBtn.disabled = false;
+        } else {
+            selectedSlot = null;
+            
+            // Disable next button
+            const nextBtn = document.getElementById('nextToStep3');
+            if (nextBtn) nextBtn.disabled = true;
+        }
+    });
+}
+
+// Generate default time slots as a fallback
+function generateDefaultTimeSlots(timeSelect, selectedDate) {
+    // Clear existing options
+    timeSelect.innerHTML = '<option value="">-- Select a Time --</option>';
+    timeSelect.disabled = false;
+    
+    // Generate time slots from 9 AM to 5 PM in 30-minute intervals
+    const startHour = 9;
+    const endHour = 17;
+    
+    for (let hour = startHour; hour < endHour; hour++) {
+        for (let minute = 0; minute < 60; minute += 30) {
+            const timeValue = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+            const option = document.createElement('option');
+            option.value = timeValue;
+            
+            // Format for display (12-hour with AM/PM)
+            const h = hour % 12 || 12;
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            option.textContent = `${h}:${minute.toString().padStart(2, '0')} ${ampm}`;
+            
+            timeSelect.appendChild(option);
+        }
+    }
+    
+    // Show a warning that these are fallback slots
+    showAlert('warning', 'Using default time slots. Actual availability may differ.');
 }
 
 // Book appointment
@@ -548,6 +603,7 @@ function bookAppointment() {
     
     // Format the appointment data according to what the backend expects
     const appointmentData = {
+        doctor_id: selectedDoctor.id,
         doctor_name: selectedDoctor.name,
         medical_specialty: selectedDoctor.specialty,
         date: selectedSlot.date,
