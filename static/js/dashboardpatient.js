@@ -1,1469 +1,1387 @@
+        // Add this function to fetch and display profile data
+        function loadProfileData() {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                window.location.href = "/patient/login";
+                return;
+            }
+            
+            fetch('/patient/profile', {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch profile');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Profile data received:", data); // Debug log
+                if (data.status === 'success') {
+                    // Update profile display
+                    document.getElementById('labDisplayName').textContent = data.data.fullname;
+                    document.getElementById('patientDisplayName').textContent = data.data.fullname;
+                    
+                    // Update profile modal if it exists
+                    const viewFullNameElement = document.getElementById('viewFullName');
+                    if (viewFullNameElement) viewFullNameElement.textContent = data.data.fullname;
+                    
+                    const viewEmailElement = document.getElementById('viewEmail');
+                    if (viewEmailElement) viewEmailElement.textContent = data.data.email;
+                    
+                    const viewPhoneElement = document.getElementById('viewPhone');
+                    if (viewPhoneElement) viewPhoneElement.textContent = data.data.phone_number;
+                    
+                    // Add birth date and gender
+                    const viewBirthDateElement = document.getElementById('viewBirthDate');
+                    if (viewBirthDateElement) {
+                        // Format the date for better display
+                        const birthDate = new Date(data.data.birth_date);
+                        const formattedDate = birthDate.toLocaleDateString('en-US', {
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric'
+                        });
+                        viewBirthDateElement.textContent = formattedDate;
+                    }
+                    
+                    const viewGenderElement = document.getElementById('viewGender');
+                    if (viewGenderElement) {
+                        // Capitalize first letter of gender
+                        const gender = data.data.gender.charAt(0).toUpperCase() + data.data.gender.slice(1);
+                        viewGenderElement.textContent = gender;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading profile:', error);
+            });
+        }
 
-// Global variables for appointment booking
+        // Call this function when the page loads
+        document.addEventListener('DOMContentLoaded', loadProfileData);
+
+        function logout(event) {
+            if (event) {
+                event.preventDefault(); // Prevent default link behavior
+            }
+            
+            console.log("Logout function called"); // Debug log
+            
+            // Clear the JWT token from localStorage
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("user_type");
+            
+            // Redirect to the patient login page directly
+            window.location.href = "/patient/login";
+        }
+
+        // Make sure profile dropdown toggle works
+        function toggleProfileDropdown(event) {
+            event.stopPropagation();
+            const dropdown = document.querySelector('.profile-dropdown');
+            dropdown.classList.toggle('active');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.querySelector('.profile-dropdown');
+            if (dropdown && !event.target.closest('.user-profile-wrapper')) {
+                dropdown.classList.remove('active');
+            }
+        });
+
+    
+// Global variables
 let selectedDoctor = null;
 let selectedSlot = null;
+let calendar = null;
 
-// Wait for the DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Initializing patient dashboard');
-    
-    // Check if user is authenticated
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-        console.error('No access token found');
-        window.location.href = '/patient/login';
-        return;
-    }
-    
-    // Initialize navigation
-    initNavigation();
-    
-    // Load profile data
-    loadProfileData();
-    
-    // Set up appointment booking only if the elements exist
-    if (document.getElementById('doctorSelect')) {
-        setupAppointmentBooking();
-        // Add debug call
-        debugFetchDoctors();
-    }
-    
-    // Load appointments if on view appointments section
-    if (document.getElementById('view-appointments-section')) {
-        loadAppointments();
-    }
-    
-    // Set up logout button
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', logout);
-    }
-});
-
-// Initialize navigation between sections
-function initNavigation() {
-    const navLinks = document.querySelectorAll('.nav-links a[data-section]');
-    if (navLinks.length === 0) {
-        console.log('No navigation links found with data-section attribute');
-        return;
-    }
-    
-    const sections = document.querySelectorAll('[id$="-section"]');
-    if (sections.length === 0) {
-        console.log('No sections found with -section suffix');
-        return;
-    }
-    
-    navLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            const targetSection = this.getAttribute('data-section');
-            console.log(`Navigating to section: ${targetSection}`);
-            
-            // Hide all sections
-            sections.forEach(section => {
-                section.style.display = 'none';
-            });
-            
-            // Show target section
-            const targetElement = document.getElementById(targetSection + '-section');
-            if (targetElement) {
-                targetElement.style.display = 'block';
-                
-                // Load appointments when viewing that section
-                if (targetSection === 'view-appointments') {
-                    loadAppointments();
-                }
-            } else {
-                console.error(`Target section not found: ${targetSection}-section`);
-            }
-            
-            // Update active link
-            navLinks.forEach(navLink => {
-                navLink.parentElement.classList.remove('active');
-            });
-            this.parentElement.classList.add('active');
-        });
-    });
-}
-
-// Load and display profile data
-function loadProfileData() {
-    showLoader('profileLoader');
-    
-    fetch('/patient/profile', {
-        method: 'GET',
-        headers: {
-            'Authorization': 'Bearer ' + localStorage.getItem('access_token')
-        }
-    })
-    .then(response => {
-        if (response.status === 401) {
-            // Unauthorized - token expired or invalid
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) {
-            throw new Error('Failed to fetch profile');
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log("Profile data received:", data);
-        hideLoader('profileLoader');
-        
-        if (data.status === 'success') {
-            // Update profile display in header
-            const nameElements = document.querySelectorAll('#labDisplayName, #patientDisplayName');
-            nameElements.forEach(el => {
-                if (el) el.textContent = data.data.fullname;
-            });
-            
-            // Update profile modal if it exists
-            const viewFullNameElement = document.getElementById('viewFullName');
-            if (viewFullNameElement) viewFullNameElement.textContent = data.data.fullname;
-            
-            const viewEmailElement = document.getElementById('viewEmail');
-            if (viewEmailElement) viewEmailElement.textContent = data.data.email;
-            
-            const viewPhoneElement = document.getElementById('viewPhone');
-            if (viewPhoneElement) viewPhoneElement.textContent = data.data.phone_number;
-            
-            // Update additional profile fields if they exist
-            const viewGenderElement = document.getElementById('viewGender');
-            if (viewGenderElement && data.data.gender) {
-                viewGenderElement.textContent = data.data.gender.charAt(0).toUpperCase() + data.data.gender.slice(1);
-            }
-            
-            const viewBirthDateElement = document.getElementById('viewBirthDate');
-            if (viewBirthDateElement && data.data.birth_date) {
-                const birthDate = new Date(data.data.birth_date);
-                viewBirthDateElement.textContent = birthDate.toLocaleDateString('en-US', {
-                    year: 'numeric', month: 'long', day: 'numeric'
-                });
-            }
-        }
-    })
-    .catch(error => {
-        hideLoader('profileLoader');
-        console.error('Error loading profile:', error);
-        
-        if (error.message === 'Unauthorized') {
-            showAlert('error', 'Your session has expired. Please log in again.');
-            logout();
-        } else {
-            showAlert('error', 'Failed to load profile. Please refresh the page.');
-        }
-    });
-}
-
-// Set up appointment booking functionality
-function setupAppointmentBooking() {
-    console.log('Setting up appointment booking');
-    
-    // Load doctors for the dropdown
-    loadDoctors();
-    
-    // Set up step navigation buttons
-    setupStepNavigation();
-    
-    // Set up appointment booking confirmation
-    const confirmBtn = document.getElementById('confirmBooking');
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', bookAppointment);
-    }
-}
-
-// Load doctors for appointment booking
-function loadDoctors() {
-    const doctorSelect = document.getElementById('doctorSelect');
-    if (!doctorSelect) {
-        console.error('Doctor select element not found');
-        return;
-    }
-    
-    // Show loading state
-    const loadingOption = document.createElement('option');
-    loadingOption.textContent = 'Loading doctors...';
-    loadingOption.disabled = true;
-    doctorSelect.innerHTML = '';
-    doctorSelect.appendChild(loadingOption);
-    doctorSelect.disabled = true;
-    
-    // Get token from localStorage
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-        console.error('No access token found');
-        doctorSelect.innerHTML = '<option value="">-- Select a Doctor --</option>';
-        const errorOption = document.createElement('option');
-        errorOption.textContent = 'Please log in again';
-        errorOption.disabled = true;
-        doctorSelect.appendChild(errorOption);
-        return;
-    }
-    
-    // Fetch doctors from API
-    fetch('/patient/doctors/available', {
-        method: 'GET',
-        headers: {
-            'Authorization': 'Bearer ' + token
-        }
-    })
-    .then(response => {
-        console.log('Response status:', response.status);
-        if (response.status === 401) {
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Doctors data received:', data);
-        
-        // Remove loading option
-        doctorSelect.innerHTML = '<option value="">-- Select a Doctor --</option>';
-        doctorSelect.disabled = false;
-        
-        if (data.status === 'success' && data.doctors && data.doctors.length > 0) {
-            // Add doctors to select dropdown
-            data.doctors.forEach(doctor => {
-                const option = document.createElement('option');
-                option.value = doctor.id;
-                option.textContent = `${doctor.name} - ${doctor.specialty}`;
-                // Store doctor data as a data attribute
-                option.dataset.doctor = JSON.stringify({
-                    id: doctor.id,
-                    name: doctor.name,
-                    specialty: doctor.specialty,
-                    availability: doctor.availability
-                });
-                doctorSelect.appendChild(option);
-            });
-            
-            // Add change event listener
-            doctorSelect.addEventListener('change', function() {
-                if (this.value) {
-                    // Get selected doctor data from data attribute
-                    const selectedOption = this.options[this.selectedIndex];
-                    try {
-                        selectedDoctor = JSON.parse(selectedOption.dataset.doctor);
-                        console.log('Selected doctor:', selectedDoctor);
-                        
-                        // Enable next button
-                        const nextBtn = document.getElementById('nextToStep2');
-                        if (nextBtn) nextBtn.disabled = false;
-                    } catch (e) {
-                        console.error('Error parsing doctor data:', e);
-                        selectedDoctor = null;
-                    }
-                } else {
-                    selectedDoctor = null;
-                    
-                    // Disable next button
-                    const nextBtn = document.getElementById('nextToStep2');
-                    if (nextBtn) nextBtn.disabled = true;
-                }
-            });
-        } else {
-            // No doctors found
-            const noDocsOption = document.createElement('option');
-            noDocsOption.textContent = 'No doctors available';
-            noDocsOption.disabled = true;
-            doctorSelect.appendChild(noDocsOption);
-        }
-    })
-    .catch(error => {
-        console.error('Error fetching doctors:', error);
-        
-        // Reset dropdown with error message
-        doctorSelect.innerHTML = '<option value="">-- Select a Doctor --</option>';
-        doctorSelect.disabled = false;
-        const errorOption = document.createElement('option');
-        errorOption.textContent = 'Error loading doctors';
-        errorOption.disabled = true;
-        doctorSelect.appendChild(errorOption);
-        
-        // Show alert with more details
-        showAlert('error', 'Failed to load doctors. Check console for details.');
-        
-        if (error.message === 'Unauthorized') {
-            showAlert('error', 'Your session has expired. Please log in again.');
-            logout();
-        }
-    });
-}
-
-// Set up step navigation for appointment booking
-function setupStepNavigation() {
-    console.log('Setting up step navigation');
-    
-    // Step 1 to Step 2
-    const nextToStep2Btn = document.getElementById('nextToStep2');
-    if (nextToStep2Btn) {
-        nextToStep2Btn.addEventListener('click', function() {
-            if (selectedDoctor) {
-                // Update doctor name in step 2
-                const doctorNameEl = document.getElementById('doctorNameDisplay');
-                if (doctorNameEl) {
-                    doctorNameEl.textContent = `Choose a convenient time for your appointment with Dr. ${selectedDoctor.name}`;
-                }
-                
-                // Show step 2, hide step 1
-                const step1 = document.getElementById('step1');
-                const step2 = document.getElementById('step2');
-                if (step1 && step2) {
-                    step1.classList.remove('active');
-                    step2.classList.add('active');
-                    
-                    // Update progress indicator
-                    updateProgressIndicator(2);
-                    
-                    // Set up date input with min date
-                    setupDateInput();
-                } else {
-                    console.error('Step elements not found');
-                }
-            }
-        });
-    }
-    
-    // Step 2 to Step 3
-    const nextToStep3Btn = document.getElementById('nextToStep3');
-    if (nextToStep3Btn) {
-        nextToStep3Btn.addEventListener('click', function() {
-            if (selectedDoctor && selectedSlot) {
-                // Fill confirmation details
-                const confirmDoctorName = document.getElementById('confirmDoctorName');
-                if (confirmDoctorName) {
-                    confirmDoctorName.textContent = selectedDoctor.name;
-                }
-                
-                const confirmSpecialty = document.getElementById('confirmSpecialty');
-                if (confirmSpecialty) {
-                    confirmSpecialty.textContent = selectedDoctor.specialty;
-                }
-                
-                const confirmDate = document.getElementById('confirmDate');
-                if (confirmDate) {
-                    // Format date for better readability
-                    const date = new Date(selectedSlot.date);
-                    confirmDate.textContent = date.toLocaleDateString('en-US', {
-                        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-                    });
-                }
-                
-                const confirmTime = document.getElementById('confirmTime');
-                if (confirmTime) {
-                    confirmTime.textContent = selectedSlot.display;
-                }
-                
-                // Show step 3, hide step 2
-                const step2 = document.getElementById('step2');
-                const step3 = document.getElementById('step3');
-                if (step2 && step3) {
-                    step2.classList.remove('active');
-                    step3.classList.add('active');
-                    
-                    // Update progress indicator
-                    updateProgressIndicator(3);
-                }
-            }
-        });
-    }
-    
-    // Back buttons
-    const backButtons = document.querySelectorAll('.btn-back');
-    backButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const currentStep = parseInt(this.getAttribute('data-current-step'));
-            const prevStep = currentStep - 1;
-            
-            // Hide current step, show previous step
-            const currentStepEl = document.getElementById(`step${currentStep}`);
-            const prevStepEl = document.getElementById(`step${prevStep}`);
-            
-            if (currentStepEl && prevStepEl) {
-                currentStepEl.classList.remove('active');
-                prevStepEl.classList.add('active');
-                
-                // Update progress indicator
-                updateProgressIndicator(prevStep);
-            }
-        });
-    });
-}
-
-// Update progress indicator
-function updateProgressIndicator(step) {
-    // Reset all steps
-    document.querySelectorAll('.progress-steps .step').forEach((el, index) => {
-        if (index + 1 <= step) {
-            el.classList.add('active');
-        } else {
-            el.classList.remove('active');
-        }
-    });
-}
-
-// Set up date input with min date and event listener
-function setupDateInput() {
-    const dateInput = document.getElementById('appointmentDate');
-    if (!dateInput) {
-        console.error('Date input element not found');
-        return;
-    }
-    
-    // Set min date to today
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    dateInput.min = `${yyyy}-${mm}-${dd}`;
-    dateInput.value = `${yyyy}-${mm}-${dd}`; // Set default value to today
-    
-    // Clear any existing event listeners
-    const newDateInput = dateInput.cloneNode(true);
-    dateInput.parentNode.replaceChild(newDateInput, dateInput);
-    
-    // Add event listener for date change
-    newDateInput.addEventListener('change', function() {
-        generateTimeSlots(this.value);
-    });
-    
-    // Trigger time slot generation for today's date
-    generateTimeSlots(`${yyyy}-${mm}-${dd}`);
-}
-
-// Generate available time slots based on selected date
-function generateTimeSlots(selectedDate) {
-    const timeSelect = document.getElementById('appointmentTime');
-
-    if (!timeSelect || !selectedDoctor) {
-        console.error('Time select element or selected doctor not found');
-        return;
-    }
-
-    if (!selectedDate) {
-        console.warn('No date selected');
-        return;
-    }
-
-    // Reset previous options and show loading state
-    timeSelect.innerHTML = '<option value="">Loading available times...</option>';
-    timeSelect.disabled = true;
-
-    console.log('Fetching available slots for doctor:', selectedDoctor.id, 'on', selectedDate);
-
-    // Get token from localStorage
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-        console.error('No access token found');
-        timeSelect.innerHTML = '<option value="">-- Select a Time --</option>';
-        const errorOption = document.createElement('option');
-        errorOption.textContent = 'Please log in again';
-        errorOption.disabled = true;
-        timeSelect.appendChild(errorOption);
-        return;
-    }
-
-    // Use a direct API call to get time slots instead of the complex route
-    // This is a simplified approach to fix the immediate issue
-    fetch('/patient/apt/timeslots', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + token
-        },
-        body: JSON.stringify({
-            doctor_id: selectedDoctor.id,
-            date: selectedDate
-        })
-    })
-    .then(response => {
-        if (response.status === 401) {
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Time slots received:', data);
-
-        // Reset time select
-        timeSelect.innerHTML = '<option value="">-- Select a Time --</option>';
-        timeSelect.disabled = false;
-
-        if (data.status === 'success' && data.slots && data.slots.length > 0) {
-            // Add time slots
-            data.slots.forEach(slot => {
-                const option = document.createElement('option');
-                option.value = slot;
-                
-                // Format slot time to AM/PM
-                const [hour, minute] = slot.split(':');
-                const h = parseInt(hour);
-                const ampm = h >= 12 ? 'PM' : 'AM';
-                const displayHour = h % 12 || 12;
-                option.textContent = `${displayHour}:${minute} ${ampm}`;
-                
-                timeSelect.appendChild(option);
-            });
-        } else {
-            // If no slots returned or API doesn't work, generate some default slots
-            // This is a fallback to ensure something is displayed
-            generateDefaultTimeSlots(timeSelect, selectedDate);
-        }
-    })
-    .catch(error => {
-        console.error('Error loading time slots:', error);
-        
-        // Generate default time slots as a fallback
-        generateDefaultTimeSlots(timeSelect, selectedDate);
-        
-        if (error.message === 'Unauthorized') {
-            showAlert('error', 'Your session has expired. Please log in again.');
-            logout();
-        }
-    });
-
-    // Remove any existing event listeners to prevent duplicates
-    const newTimeSelect = timeSelect.cloneNode(true);
-    timeSelect.parentNode.replaceChild(newTimeSelect, timeSelect);
-    
-    // Add event listener to the new select element
-    newTimeSelect.addEventListener('change', function() {
-        if (this.value) {
-            selectedSlot = {
-                date: selectedDate,
-                time: this.value,
-                display: this.options[this.selectedIndex].textContent
-            };
-
-            // Enable next button
-            const nextBtn = document.getElementById('nextToStep3');
-            if (nextBtn) nextBtn.disabled = false;
-        } else {
-            selectedSlot = null;
-            
-            // Disable next button
-            const nextBtn = document.getElementById('nextToStep3');
-            if (nextBtn) nextBtn.disabled = true;
-        }
-    });
-}
-
-// Generate default time slots as a fallback
-function generateDefaultTimeSlots(timeSelect, selectedDate) {
-    // Clear existing options
-    timeSelect.innerHTML = '<option value="">-- Select a Time --</option>';
-    timeSelect.disabled = false;
-    
-    // Generate time slots from 9 AM to 5 PM in 30-minute intervals
-    const startHour = 9;
-    const endHour = 17;
-    
-    for (let hour = startHour; hour < endHour; hour++) {
-        for (let minute = 0; minute < 60; minute += 30) {
-            const timeValue = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-            const option = document.createElement('option');
-            option.value = timeValue;
-            
-            // Format for display (12-hour with AM/PM)
-            const h = hour % 12 || 12;
-            const ampm = hour >= 12 ? 'PM' : 'AM';
-            option.textContent = `${h}:${minute.toString().padStart(2, '0')} ${ampm}`;
-            
-            timeSelect.appendChild(option);
-        }
-    }
-    
-    // Show a warning that these are fallback slots
-    showAlert('warning', 'Using default time slots. Actual availability may differ.');
-}
-
-// Book appointment
-function bookAppointment() {
-    console.log('Booking appointment...');
-    
+// Save and show appointment
+function saveAndShowAppointment() {
     if (!selectedDoctor || !selectedSlot) {
-        showAlert('error', 'Please select a doctor and time slot');
+        alert('Please complete all steps before confirming.');
         return;
     }
-    
-    // Disable confirm button to prevent double booking
-    const confirmBtn = document.getElementById('confirmBooking');
-    if (confirmBtn) {
-        confirmBtn.disabled = true;
-        confirmBtn.textContent = 'Booking...';
-    }
-    
-    // Format the appointment data according to what the backend expects
+
+    // Prepare appointment data
     const appointmentData = {
-        doctor_id: selectedDoctor.id,
-        doctor_name: selectedDoctor.name,
-        medical_specialty: selectedDoctor.specialty,
-        date: selectedSlot.date,
-        time: selectedSlot.time
+        doctorId: selectedDoctor.id,
+        doctorName: selectedDoctor.name,
+        startTime: selectedSlot.start,
+        endTime: selectedSlot.end,
+        date: document.getElementById('confirmDate').textContent,
+        time: document.getElementById('confirmTime').textContent,
+        status: 'confirmed'
     };
-    
-    console.log('Booking appointment with data:', appointmentData);
-    
-    fetch('/patient/apt/book', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('access_token')
-        },
-        body: JSON.stringify(appointmentData)
-    })
-    .then(response => {
-        if (response.status === 401) {
-            throw new Error('Unauthorized');
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Booking response:', data);
-        
-        // Re-enable confirm button
-        if (confirmBtn) {
-            confirmBtn.disabled = false;
-            confirmBtn.textContent = 'Confirm Booking';
-        }
-        
-        if (data.status === 'success') {
-            showAlert('success', data.message || 'Appointment booked successfully');
-            
-            // Reset form and selected values
-            selectedDoctor = null;
-            selectedSlot = null;
-            
-            // Reset the booking form UI
-            resetBookingForm();
-            
-            // Switch to view appointments section
-            const viewApptsLink = document.querySelector('a[data-section="view-appointments"]');
-            if (viewApptsLink) {
-                viewApptsLink.click();
-            }
-        } else {
-            showAlert('error', data.message || 'Error booking appointment');
-        }
-    })
-    .catch(error => {
-        console.error('Error booking appointment:', error);
-        
-        // Re-enable confirm button
-        if (confirmBtn) {
-            confirmBtn.disabled = false;
-            confirmBtn.textContent = 'Confirm Booking';
-        }
-        
-        if (error.message === 'Unauthorized') {
-            showAlert('error', 'Your session has expired. Please log in again.');
-            logout();
-        } else {
-            showAlert('error', 'Failed to book appointment. Please try again.');
-        }
-    });
+
+    // Save to localStorage
+    const appointments = JSON.parse(localStorage.getItem('patientAppointments') || '[]');
+    appointments.push(appointmentData);
+    localStorage.setItem('patientAppointments', JSON.stringify(appointments));
+
+    // Show success message
+    alert('Appointment confirmed successfully!');
+
+    // Load appointments and show view appointments section
+    loadAppointments();
+    document.querySelectorAll('.dashboard-content').forEach(el => el.style.display = 'none');
+    document.getElementById('view-appointments-section').style.display = 'block';
+
+    // Reset form
+    resetForm();
+    steps.goTo(1);
 }
 
-// Function to reset the booking form
-function resetBookingForm() {
-    // Reset doctor selection
-    const doctorSelect = document.getElementById('doctorSelect');
-    if (doctorSelect) {
-        doctorSelect.selectedIndex = 0;
-    }
-    
-    // Clear selected time slot
-    const timeSlots = document.querySelectorAll('.time-slot');
-    timeSlots.forEach(slot => {
-        slot.classList.remove('selected');
-    });
-    
-    // Reset to step 1
-    const steps = document.querySelectorAll('.booking-step');
-    steps.forEach(step => {
-        step.classList.remove('active');
-    });
-    
-    const step1 = document.getElementById('step1');
-    if (step1) {
-        step1.classList.add('active');
-    }
-    
-    // Reset progress indicator
-    updateProgressIndicator(1);
-    
-    // Reset global variables
-    selectedDoctor = null;
-    selectedSlot = null;
-}
-
-// Load appointments
+// Load appointments from storage
 function loadAppointments() {
-    console.log('Loading appointments');
-    const appointmentsContainer = document.getElementById('appointments-container');
-    if (!appointmentsContainer) {
-        console.error('Appointments container not found');
-        return;
-    }
-    
-    // Show loading spinner
-    appointmentsContainer.innerHTML = `
-        <div class="text-center p-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2">Loading your appointments...</p>
-        </div>
-    `;
-    
-    fetch('/patient/apt/list', {
-        method: 'GET',
-        headers: {
-            'Authorization': 'Bearer ' + localStorage.getItem('access_token')
-        }
-    })
-    .then(response => {
-        if (response.status === 401) {
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Appointments data:', data);
-        
-        if (data.status === 'success' && data.appointments && data.appointments.length > 0) {
-            // Render appointments
-            let html = `
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Doctor</th>
-                                <th>Specialty</th>
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-            
-            data.appointments.forEach(apt => {
-                // Format date
-                const date = new Date(apt.date);
-                const formattedDate = date.toLocaleDateString('en-US', {
-                    year: 'numeric', month: 'long', day: 'numeric'
-                });
-                
-                // Format time
-                const timeParts = apt.time.split(':');
-                const hour = parseInt(timeParts[0]);
-                const minute = timeParts[1];
-                const ampm = hour >= 12 ? 'PM' : 'AM';
-                const hour12 = hour % 12 || 12;
-                const formattedTime = `${hour12}:${minute} ${ampm}`;
-                
-                // Status badge class
-                let statusClass = '';
-                switch (apt.status.toLowerCase()) {
-                    case 'pending':
-                        statusClass = 'bg-warning text-dark';
-                        break;
-                    case 'confirmed':
-                        statusClass = 'bg-success';
-                        break;
-                    case 'completed':
-                        statusClass = 'bg-info';
-                        break;
-                    case 'cancelled':
-                        statusClass = 'bg-danger';
-                        break;
-                    default:
-                        statusClass = 'bg-secondary';
-                }
-                
-                // Cancel button (only show for pending or confirmed appointments)
-                const cancelButton = (apt.status.toLowerCase() === 'pending' || apt.status.toLowerCase() === 'confirmed') 
-                    ? `<button class="btn btn-sm btn-outline-danger cancel-apt" data-apt-id="${apt.id}">Cancel</button>` 
-                    : '';
-                
-                html += `
-                    <tr>
-                        <td>${apt.doctor_name}</td>
-                        <td>${apt.doctor_specialty}</td>
-                        <td>${formattedDate}</td>
-                        <td>${formattedTime}</td>
-                        <td><span class="badge ${statusClass}">${apt.status}</span></td>
-                        <td>${cancelButton}</td>
-                    </tr>
-                `;
-            });
-            
-            html += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
-            
-            appointmentsContainer.innerHTML = html;
-            
-            // Add event listeners to cancel buttons
-            const cancelButtons = document.querySelectorAll('.cancel-apt');
-            cancelButtons.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const aptId = this.getAttribute('data-apt-id');
-                    cancelAppointment(aptId);
-                });
-            });
-        } else {
-            // No appointments
-            appointmentsContainer.innerHTML = `
-                <div class="text-center p-5">
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        You don't have any appointments yet.
-                    </div>
-                    <button class="btn btn-primary mt-3" id="bookNewAppointmentBtn">
-                        <i class="fas fa-calendar-plus me-2"></i>
-                        Book an Appointment
-                    </button>
-                </div>
-            `;
-            
-            // Add event listener to book button
-            const bookBtn = document.getElementById('bookNewAppointmentBtn');
-            if (bookBtn) {
-                bookBtn.addEventListener('click', function() {
-                    // Navigate to book appointment section
-                    const bookLink = document.querySelector('a[data-section="book-appointment"]');
-                    if (bookLink) {
-                        bookLink.click();
-                    }
-                });
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error loading appointments:', error);
-        
-        appointmentsContainer.innerHTML = `
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                Failed to load appointments. ${error.message}
-            </div>
-            <button class="btn btn-primary mt-3" id="retryLoadAppointmentsBtn">
-                <i class="fas fa-sync me-2"></i>
-                Retry
-            </button>
+    const appointments = JSON.parse(localStorage.getItem('patientAppointments') || '[]');
+    const tableBody = document.getElementById('appointmentsTableBody');
+    tableBody.innerHTML = '';
+
+    appointments.forEach(appointment => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${appointment.doctorName}</td>
+            <td>${appointment.date}</td>
+            <td>${appointment.time}</td>
+            <td>${appointment.status}</td>
+            <td>
+                <button class="btn-cancel" onclick="cancelAppointment('${appointment.startTime}')">Cancel</button>
+            </td>
         `;
-        
-        // Add event listener to retry button
-        const retryBtn = document.getElementById('retryLoadAppointmentsBtn');
-        if (retryBtn) {
-            retryBtn.addEventListener('click', loadAppointments);
-        }
-        
-        if (error.message === 'Unauthorized') {
-            showAlert('error', 'Your session has expired. Please log in again.');
-            logout();
-        }
+        tableBody.appendChild(row);
     });
 }
 
 // Cancel appointment
-function cancelAppointment(appointmentId) {
-    if (!confirm('Are you sure you want to cancel this appointment?')) {
-        return;
-    }
-    
-    fetch(`/patient/apt/cancel/${appointmentId}`, {
-        method: 'POST',
-        headers: {
-            'Authorization': 'Bearer ' + localStorage.getItem('access_token')
-        }
-    })
-    .then(response => {
-        if (response.status === 401) {
-            throw new Error('Unauthorized');
-        }
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Cancel response:', data);
-        
-        if (data.status === 'success') {
-            showAlert('success', 'Appointment cancelled successfully');
-            // Reload appointments
-            loadAppointments();
-        } else {
-            showAlert('error', data.message || 'Failed to cancel appointment');
-        }
-    })
-    .catch(error => {
-        console.error('Error cancelling appointment:', error);
-        
-        if (error.message === 'Unauthorized') {
-            showAlert('error', 'Your session has expired. Please log in again.');
-            logout();
-        } else {
-            showAlert('error', 'Failed to cancel appointment. Please try again.');
-        }
-    });
-}
-
-// Close view modal
-function closeViewModal() {
-const modal = document.getElementById('viewProfileModal');
-modal.style.opacity = '0';
-modal.style.transform = 'translateY(-20px)';
-setTimeout(() => {
-    modal.style.display = 'none';
-}, 300);
-}
-
-// Book appointment - Step 3 confirmation button
-document.getElementById('confirmBooking').addEventListener('click', function() {
-    // Get selected doctor and time slot from the form
-    const appointmentData = {
-        doctor_name: selectedDoctor.name,
-        medical_specialty: selectedDoctor.specialty,
-        date: selectedSlot.start.toISOString().split('T')[0],
-        time: selectedSlot.start.toTimeString().substring(0, 5)
-    };
-
-    // Call the API to book the appointment
-    fetch('/patient/apt/book', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + localStorage.getItem('access_token')
-        },
-        body: JSON.stringify(appointmentData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            alert(data.message);
-            resetForm();
-            // Switch to View Appointments section
-            document.querySelector('a[data-section="view-appointments"]').click();
-            loadAppointments(); // Refresh appointments list
-        } else {
-            alert('Error: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error booking appointment:', error);
-        alert('Failed to book appointment. Please try again.');
-    });
-});
-
-// Function to load appointments
-function loadAppointments() {
-    fetch('/patient/apt/view', {
-        method: 'GET',
-        headers: {
-            'Authorization': 'Bearer ' + localStorage.getItem('access_token')
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            const tbody = document.getElementById('appointmentsBody');
-            tbody.innerHTML = ''; // Clear existing rows
-            
-            data.appointments.forEach(apt => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${apt.doctor_name} (${apt.specialty})</td>
-                    <td>${apt.date}</td>
-                    <td>${apt.time_range}</td>
-                    <td>${apt.status}</td>
-                    <td>
-                        <button class="btn-cancel" onclick="cancelAppointment(${apt.appointment_id})">
-                            Cancel
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error loading appointments:', error);
-    });
-}
-
-// Function to cancel an appointment
-function cancelAppointment(appointmentId) {
+function cancelAppointment(appointmentTime) {
     if (confirm('Are you sure you want to cancel this appointment?')) {
-        fetch(`/patient/apt/cancel/${appointmentId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem('access_token')
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert(data.message);
-                loadAppointments(); // Refresh the appointments list
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error cancelling appointment:', error);
-            alert('Failed to cancel appointment. Please try again.');
-        });
-    }
-}
-
-// Load appointments when view appointments section is shown
-document.querySelector('a[data-section="view-appointments"]').addEventListener('click', function() {
-    loadAppointments();
-});
-
-// Also load appointments when page loads if we're on the view appointments section
-document.addEventListener('DOMContentLoaded', function() {
-    if (document.getElementById('view-appointments-section').style.display !== 'none') {
+        const appointments = JSON.parse(localStorage.getItem('patientAppointments') || '[]');
+        const updatedAppointments = appointments.filter(app => app.startTime !== appointmentTime);
+        localStorage.setItem('patientAppointments', JSON.stringify(updatedAppointments));
         loadAppointments();
     }
+}
 
-// Helper function to show alerts
-function showAlert(type, message) {
-    // Create alert element if it doesn't exist
-    let alertContainer = document.getElementById('alertContainer');
-    if (!alertContainer) {
-        alertContainer = document.createElement('div');
-        alertContainer.id = 'alertContainer';
-        alertContainer.style.position = 'fixed';
-        alertContainer.style.top = '20px';
-        alertContainer.style.right = '20px';
-        alertContainer.style.zIndex = '1000';
-        document.body.appendChild(alertContainer);
-    }
+// Global variables
+
+// Sample doctor data - in a real app, this would come from the backend
+const doctors = [
+    { 
+        id: 1, 
+        name: 'Dr. amira', 
+        specialty: 'Cardiologist', 
+        available: true,
+        email: "a@example.com",
+        phone: "+213"
+    },
+    { 
+        id: 2, 
+        name: 'Dr. fatima', 
+        specialty: 'Neurologist', 
+        available: true,
+        email: "a@example.com",
+        phone: "+213"
+    },
+
+];
+
+// Initialize the form when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Load doctors
+    loadDoctors();
     
-    // Create alert
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${type}`;
-    alert.innerHTML = `
-        <span>${message}</span>
-        <button type="button" class="close-btn">&times;</button>
-    `;
+    // Initialize the calendar
+    initializeCalendar();
     
-    // Style based on type
-    if (type === 'error') {
-        alert.style.backgroundColor = '#f8d7da';
-        alert.style.color = '#721c24';
-        alert.style.borderColor = '#f5c6cb';
-    } else if (type === 'success') {
-        alert.style.backgroundColor = '#d4edda';
-        alert.style.color = '#155724';
-        alert.style.borderColor = '#c3e6cb';
-    } else {
-        alert.style.backgroundColor = '#cce5ff';
-        alert.style.color = '#004085';
-        alert.style.borderColor = '#b8daff';
-    }
-    
-    // Additional styling
-    alert.style.padding = '10px 15px';
-    alert.style.marginBottom = '10px';
-    alert.style.borderRadius = '4px';
-    alert.style.border = '1px solid transparent';
-    
-    // Add close button functionality
-    const closeBtn = alert.querySelector('.close-btn');
-    closeBtn.style.marginLeft = '15px';
-    closeBtn.style.fontWeight = 'bold';
-    closeBtn.style.float = 'right';
-    closeBtn.style.fontSize = '20px';
-    closeBtn.style.lineHeight = '20px';
-    closeBtn.style.cursor = 'pointer';
-    
-    closeBtn.addEventListener('click', function() {
-        alertContainer.removeChild(alert);
+    // Set up event listeners
+    document.getElementById('nextToStep2').addEventListener('click', nextStep);
+    document.getElementById('nextToStep3').addEventListener('click', function() {
+        // Fill summary in Step 3
+        if (selectedDoctor && selectedSlot) {
+            document.getElementById('confirmDoctorName').textContent = selectedDoctor.name;
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('confirmDate').textContent = selectedSlot.start.toLocaleDateString('en-US', dateOptions);
+            document.getElementById('confirmTime').textContent = `${selectedSlot.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${selectedSlot.end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+        }
+        nextStep();
     });
-    
-    // Add to container
-    alertContainer.appendChild(alert);
-    
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-        if (alertContainer.contains(alert)) {
-            alertContainer.removeChild(alert);
-        }
-    }, 5000);
-}
 
-// Helper function to show loader
-function showLoader(id) {
-    const loaderContainer = document.getElementById(id);
-    if (!loaderContainer) return;
-    
-    loaderContainer.innerHTML = `
-        <div class="loader-spinner"></div>
-        <p>Loading...</p>
-    `;
-    loaderContainer.style.display = 'flex';
-}
-
-// Helper function to hide loader
-function hideLoader(id) {
-    const loaderContainer = document.getElementById(id);
-    if (!loaderContainer) return;
-    
-    loaderContainer.innerHTML = '';
-    loaderContainer.style.display = 'none';
-}
-
-// Logout function
-function logout() {
-    console.log('Logging out...');
-    // Clear local storage
-    localStorage.removeItem('access_token');
-    
-    // Redirect to login page
-    window.location.href = '/patient/login?session_expired=true';
-}
-
-// Helper function to parse time string (HH:MM) to Date object
-function parseTime(timeStr) {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hours, minutes, 0, 0);
-    return date;
-}
-
-// Helper function to format Date as time string (HH:MM)
-function formatTime(date) {
-    return date.toTimeString().substring(0, 5);
-}
-
-// Add event listener for date input
-document.addEventListener('DOMContentLoaded', function() {
-    const dateInput = document.getElementById('appointmentDate');
-    if (dateInput) {
-        dateInput.addEventListener('change', function() {
-            if (selectedDoctor) {
-                generateTimeSlots();
+    // Back button in Step 3 returns to Step 2 and keeps previous selections
+    document.querySelector('#step3 .btn-back').addEventListener('click', function() {
+        steps.goTo(2);
+        // Re-populate date and time fields with previous selection
+        if (selectedSlot) {
+            document.getElementById('availableDate').value = selectedSlot.start.toISOString().split('T')[0];
+            const availableTimeSelect = document.getElementById('availableTime');
+            for (let opt of availableTimeSelect.options) {
+                if (opt.value.startsWith(selectedSlot.start.toISOString())) {
+                    availableTimeSelect.value = opt.value;
+                    break;
+                }
             }
-        });
-        
-        // Set min date to today
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        dateInput.min = `${yyyy}-${mm}-${dd}`;
-    }
-
-// Doctor selection handling
-document.addEventListener('DOMContentLoaded', function() {
-    const doctorSelect = document.getElementById('doctorSelect');
-    const nextToStep2Btn = document.getElementById('nextToStep2');
-    
-    if (doctorSelect) {
-        // Load doctors into dropdown
-        loadDoctors();
-        
-        // Enable next button when a doctor is selected
-        doctorSelect.addEventListener('change', function() {
-            if (this.value) {
-                nextToStep2Btn.disabled = false;
-            } else {
-                nextToStep2Btn.disabled = true;
-            }
-        });
-    }
-    
-    // Handle dropdown display
-    doctorSelect.addEventListener('click', function(e) {
-        e.stopPropagation();
-        
-        // Check if dropdown is already open
-        const existingList = document.querySelector('.doctor-list');
-        if (existingList) {
-            existingList.remove();
-            return;
         }
-        
-        // Create dropdown list
-        const doctorList = document.createElement('div');
-        doctorList.className = 'doctor-list';
-        
-        // Get all options from select
-        const options = Array.from(this.options);
-        
-        // Skip the first placeholder option
-        options.slice(1).forEach(option => {
-            const item = document.createElement('div');
-            item.className = 'doctor-list-item';
-            item.textContent = option.textContent;
-            item.setAttribute('data-value', option.value);
-            
-            item.addEventListener('click', function() {
-                doctorSelect.value = this.getAttribute('data-value');
-                doctorSelect.dispatchEvent(new Event('change'));
-                doctorList.remove();
+    });
+
+    // Add click handlers for step navigation in the progress bar
+    document.querySelectorAll('.step').forEach(stepEl => {
+        stepEl.addEventListener('click', () => {
+            const step = parseInt(stepEl.getAttribute('data-step'));
+            steps.goTo(step);
+        });
+    });
+
+    // Doctor select event: only enable Next button, do not show doctor card
+    document.getElementById('doctorSelect').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (this.value) {
+            const doctor = JSON.parse(selectedOption.getAttribute('data-doctor'));
+            selectedDoctor = doctor;
+            document.getElementById('nextToStep2').disabled = false;
+        } else {
+            selectedDoctor = null;
+            document.getElementById('nextToStep2').disabled = true;
+        }
+    });
+
+    // When "Next" to Step 2 is clicked
+    document.getElementById('nextToStep2').addEventListener('click', function() {
+        if (selectedDoctor) {
+            document.getElementById('selectedDoctorName').textContent = selectedDoctor.name || '';
+            // Generate available slots for this doctor
+            const slots = generateAvailableSlots(selectedDoctor.id);
+            // Group slots by date
+            const dateMap = {};
+            slots.forEach(slot => {
+                const dateStr = slot.start.toISOString().split('T')[0];
+                if (!dateMap[dateStr]) dateMap[dateStr] = [];
+                dateMap[dateStr].push(slot);
             });
-            
-            doctorList.appendChild(item);
-        });
-        
-        // Position and append the dropdown
-        const rect = this.getBoundingClientRect();
-        doctorList.style.top = `${rect.bottom}px`;
-        doctorList.style.left = `${rect.left}px`;
-        doctorList.style.width = `${rect.width}px`;
-        
-        document.body.appendChild(doctorList);
-    });
-    
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function() {
-        const doctorList = document.querySelector('.doctor-list');
-        if (doctorList) {
-            doctorList.remove();
+            // Populate date picker with only available dates
+            const availableDateInput = document.getElementById('availableDate');
+            availableDateInput.value = '';
+            availableDateInput.disabled = false;
+            availableDateInput.setAttribute('min', Object.keys(dateMap)[0] || '');
+            availableDateInput.setAttribute('max', Object.keys(dateMap).slice(-1)[0] || '');
+            // Remove previous event listener if any
+            availableDateInput.oninput = null;
+            // Disable and reset time dropdown
+            const availableTimeSelect = document.getElementById('availableTime');
+            availableTimeSelect.innerHTML = '<option value="">-- Select a Time --</option>';
+            availableTimeSelect.disabled = true;
+            document.getElementById('nextToStep3').disabled = true;
+
+            // Only allow picking available dates
+            availableDateInput.oninput = function() {
+                const selectedDate = this.value;
+                availableTimeSelect.innerHTML = '<option value="">-- Select a Time --</option>';
+                availableTimeSelect.disabled = true;
+                document.getElementById('nextToStep3').disabled = true;
+                if (dateMap[selectedDate]) {
+                    dateMap[selectedDate].forEach(slot => {
+                        const start = new Date(slot.start);
+                        const end = new Date(slot.end);
+                        const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')} - ${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
+                        const opt = document.createElement('option');
+                        opt.value = `${slot.start.toISOString()}|${slot.end.toISOString()}`;
+                        opt.textContent = timeStr;
+                        availableTimeSelect.appendChild(opt);
+                    });
+                    availableTimeSelect.disabled = false;
+                }
+            };
+
+            // Enable Next button only when a time is selected
+            availableTimeSelect.onchange = function() {
+                document.getElementById('nextToStep3').disabled = !this.value;
+                if (this.value) {
+                    const [startIso, endIso] = this.value.split('|');
+                    selectedSlot = {
+                        start: new Date(startIso),
+                        end: new Date(endIso)
+                    };
+                } else {
+                    selectedSlot = null;
+                }
+            };
         }
     });
 });
 
-// Function to load doctors
+// Load doctors into the select dropdown
 function loadDoctors() {
     const doctorSelect = document.getElementById('doctorSelect');
-    if (!doctorSelect) return;
     
     // Clear existing options except the first one
     while (doctorSelect.options.length > 1) {
         doctorSelect.remove(1);
     }
     
-    // Add sample doctors (replace with your API call)
-    const sampleDoctors = [
-        { id: 1, name: 'Dr. amira', specialty: 'Cardiologist' },
-        { id: 2, name: 'Dr. fatima', specialty: 'Neurologist' }
-    ];
-    
-    sampleDoctors.forEach(doctor => {
-        const option = document.createElement('option');
-        option.value = doctor.id;
-        option.textContent = `${doctor.name} - ${doctor.specialty}`;
-        doctorSelect.appendChild(option);
-    });
-}
-
-// Function to update progress indicator
-function updateProgressIndicator(step) {
-    // Reset all steps
-    document.querySelectorAll('.progress-steps .step').forEach((el, index) => {
-        if (index + 1 <= step) {
-            el.classList.add('active');
-        } else {
-            el.classList.remove('active');
+    // Add doctors to the select dropdown
+    doctors.forEach(doctor => {
+        if (doctor.available) {
+            const option = document.createElement('option');
+            option.value = doctor.id;
+            option.textContent = `${doctor.name} - ${doctor.specialty}`;
+            option.setAttribute('data-doctor', JSON.stringify(doctor));
+            doctorSelect.appendChild(option);
         }
     });
 }
 
-// Doctor selection change handler
-document.getElementById('doctorSelect').addEventListener('change', function() {
-    const selectedOption = this.options[this.selectedIndex];
-    const nextButton = document.getElementById('nextToStep2');
-    const doctorDetails = document.getElementById('doctorDetails');
+
+// Initialize FullCalendar with custom configuration
+function initializeCalendar() {
+    const calendarEl = document.getElementById('doctorCalendar');
+    if (!calendarEl) return;
     
-    if (this.value) {
-        // Enable next button
-        nextButton.disabled = false;
-        
-        // Get doctor data from the selected option
-        try {
-            selectedDoctor = JSON.parse(selectedOption.getAttribute('data-doctor'));
-            console.log('Selected doctor:', selectedDoctor);
-            
-            // Update doctor details display
-            document.getElementById('selectedDoctorName').textContent = `Dr. ${selectedDoctor.name}`;
-            document.getElementById('selectedDoctorSpecialty').textContent = selectedDoctor.specialty;
-            doctorDetails.style.display = 'block';
-        } catch (e) {
-            console.error('Error parsing doctor data:', e);
-            nextButton.disabled = true;
-            doctorDetails.style.display = 'none';
-        }
-    } else {
-        // Disable next button
-        nextButton.disabled = true;
-        doctorDetails.style.display = 'none';
+    calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'timeGridWeek,timeGridDay'
+        },
+        slotMinTime: '08:00:00',
+        slotMaxTime: '18:00:00',
+        slotDuration: '00:30:00',
+        slotLabelInterval: '01:00:00',
+        slotLabelFormat: {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        },
+        allDaySlot: false,
+        weekends: false,
+        selectable: true,
+        selectOverlap: false,
+        selectMirror: true,
+        dayHeaderFormat: { 
+            weekday: 'short', 
+            month: 'short', 
+            day: 'numeric',
+            omitCommas: true 
+        },
+        eventTimeFormat: {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        },
+        selectAllow: function(selectInfo) {
+//             // Only allow selection of available slots
+            const events = calendar.getEvents();
+            return events.some(event => {
+                return selectInfo.start >= event.start && 
+                       selectInfo.end <= event.end &&
+                       event.extendedProps?.available === true;
+            });
+        },
+        select: handleDateSelect,
+        eventClick: handleEventClick,
+        events: [],
+        height: 'auto',
+        nowIndicator: true,
+        navLinks: true,
+        businessHours: {
+            daysOfWeek: [1, 2, 3, 4, 5], // Monday - Friday
+            startTime: '09:00',
+            endTime: '17:00'
+        },
+        validRange: {
+            start: new Date(),
+            end: new Date(new Date().getTime() + 14 * 24 * 60 * 60 * 1000) // 2 weeks
+        },
+        dayHeaderClassNames: 'fc-day-header-custom',
+        slotLabelClassNames: 'fc-timegrid-slot-label-custom',
+        dayCellClassNames: 'fc-day-custom',
+        eventClassNames: 'fc-event-custom'
+    });
+    
+    calendar.render();
+}
+
+
+// Handle date selection in calendar
+function handleDateSelect(selectInfo) {
+//     // Check if the selected slot is within available slots
+    const events = calendar.getEvents();
+    const isAvailable = events.some(event => {
+        return selectInfo.start >= event.start && 
+               selectInfo.end <= event.end &&
+               event.extendedProps?.available;
+    });
+    
+    if (!isAvailable) {
+        alert('Please select an available time slot.');
+        calendar.unselect();
+        return;
     }
-});
-
-// Step navigation buttons
-document.getElementById('nextToStep2').addEventListener('click', function() {
-    // Hide step 1, show step 2
-    document.getElementById('step1').classList.remove('active');
-    document.getElementById('step2').classList.add('active');
     
-    // Update progress indicator
-    updateProgressIndicator(2);
+//     // Clear previous selection
+    if (window.selectedEvent) {
+        window.selectedEvent.remove();
+    }
     
-    // Enable date selection
-    document.getElementById('appointmentDate').disabled = false;
-});
-
-document.getElementById('backToStep1').addEventListener('click', function() {
-    // Hide step 2, show step 1
-    document.getElementById('step2').classList.remove('active');
-    document.getElementById('step1').classList.add('active');
+//     // Create a new event for the selected slot
+    window.selectedEvent = calendar.addEvent({
+        title: 'Selected',
+        start: selectInfo.start,
+        end: selectInfo.end,
+        backgroundColor: '#1a73e8',
+        borderColor: '#1a73e8',
+        display: 'background',
+        classNames: ['selected-slot']
+    });
     
-    // Update progress indicator
-    updateProgressIndicator(1);
-});
-
-document.getElementById('nextToStep3').addEventListener('click', function() {
-    // Hide step 2, show step 3
-    document.getElementById('step2').classList.remove('active');
-    document.getElementById('step3').classList.add('active');
+    selectedSlot = selectInfo;
+    document.getElementById('nextToStep3').disabled = false;
     
-    // Update progress indicator
-    updateProgressIndicator(3);
+//     // Update confirmation details
+     const start = new Date(selectInfo.start);
+    const end = new Date(selectInfo.end);
     
-    // Update confirmation details
-    document.getElementById('confirmDoctorName').textContent = `Dr. ${selectedDoctor.name}`;
-    document.getElementById('confirmSpecialty').textContent = selectedDoctor.specialty;
-    
-    const dateObj = new Date(document.getElementById('appointmentDate').value);
-    const formattedDate = dateObj.toLocaleDateString('en-US', { 
+    document.getElementById('confirmDoctorName').textContent = selectedDoctor.name;
+    document.getElementById('confirmDate').textContent = start.toLocaleDateString('en-US', { 
         weekday: 'long', 
         year: 'numeric', 
         month: 'long', 
         day: 'numeric' 
     });
-    document.getElementById('confirmDate').textContent = formattedDate;
-    document.getElementById('confirmTime').textContent = selectedSlot.display;
-});
-
-document.getElementById('backToStep2').addEventListener('click', function() {
-    // Hide step 3, show step 2
-    document.getElementById('step3').classList.remove('active');
-    document.getElementById('step2').classList.add('active');
+    document.getElementById('confirmTime').textContent = `${start.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    })} - ${end.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    })}`;
     
-    // Update progress indicator
-    updateProgressIndicator(2);
-});
-
-// Confirm booking button
-document.getElementById('confirmBooking').addEventListener('click', function() {
-    bookAppointment();
-});
-
-// Initialize the booking form when the page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Load available doctors
-    loadDoctors();
-    
-    // Set min date to today for the date picker
-    const dateInput = document.getElementById('appointmentDate');
-    if (dateInput) {
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        dateInput.min = `${yyyy}-${mm}-${dd}`;
-        
-        // Add event listener for date change
-        dateInput.addEventListener('change', function() {
-            if (selectedDoctor) {
-                generateTimeSlots();
-            }
-        });
-    }
-
-// Add this function to help with debugging
-function debugFetchDoctors() {
-    // Get token from localStorage
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-        console.error('No access token found for debugging');
-        return;
-    }
-    
-    console.log('Debug: Manually fetching doctors...');
-    
-    // Make a direct fetch request to check the response
-    fetch('/patient/doctors/available', {
-        method: 'GET',
-        headers: {
-            'Authorization': 'Bearer ' + token
-        }
-    })
-    .then(response => {
-        console.log('Debug: Response status:', response.status);
-        console.log('Debug: Response headers:', response.headers);
-        return response.text(); // Get raw response text first
-    })
-    .then(text => {
-        console.log('Debug: Raw response:', text);
-        try {
-            // Try to parse as JSON
-            const data = JSON.parse(text);
-            console.log('Debug: Parsed JSON:', data);
-        } catch (e) {
-            console.error('Debug: Failed to parse response as JSON:', e);
-        }
-    })
-    .catch(error => {
-        console.error('Debug: Error in fetch:', error);
-    });
+     // Close any open popovers
+    calendar.unselect();
 }
 
-// Call this function when the page loads
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Initializing patient dashboard');
+
+// Handle event click in calendar
+ function handleEventClick(clickInfo) {
+     // Handle event click if needed
+ }
+
+
+// Step management
+const steps = {
+    current: 1,
+    total: 3,
     
-    // Check if user is authenticated
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-        console.error('No access token found');
-        window.location.href = '/patient/login';
-        return;
+    // Validate if we can proceed to the next step
+    validateStep: function(step) {
+        const validations = {
+            1: () => {
+                if (!selectedDoctor) {
+                    alert('Please select a doctor before proceeding.');
+                    return false;
+                }
+                return true;
+            },
+            2: () => {
+                if (!selectedSlot) {
+                    alert('Please select an available time slot before proceeding.');
+                    return false;
+                }
+                return true;
+            }
+        };
+        return validations[step] ? validations[step]() : true;
+    },
+    
+    // Update the UI to show the current step
+    updateUI: function() {
+        // Hide all steps
+        document.querySelectorAll('.form-step').forEach(step => {
+            step.classList.remove('active');
+        });
+        
+        // Show current step
+        const currentStepEl = document.querySelector(`#step${this.current}`);
+        if (currentStepEl) currentStepEl.classList.add('active');
+        
+        // Update progress steps
+        document.querySelectorAll('.step').forEach((stepEl, index) => {
+            stepEl.classList.toggle('active', (index + 1) <= this.current);
+        });
+    },
+    
+    // Move to the next step
+    next: function() {
+        if (this.current >= this.total) return;
+        
+        if (this.validateStep(this.current)) {
+            this.current++;
+            this.updateUI();
+            
+            // Additional step-specific logic
+            if (this.current === 2 && selectedDoctor) {
+                loadDoctorAvailability(selectedDoctor.id);
+            }
+        }
+    },
+    
+    // Move to the previous step
+    prev: function() {
+        if (this.current <= 1) return;
+        
+        this.current--;
+        this.updateUI();
+    },
+    
+    // Go to a specific step
+    goTo: function(step) {
+        if (step < 1 || step > this.total) return;
+        
+        // If going forward, validate current step first
+        if (step > this.current) {
+            if (!this.validateStep(this.current)) return;
+        }
+        
+        this.current = step;
+        this.updateUI();
+        
+        // Additional step-specific logic
+        if (this.current === 2 && selectedDoctor) {
+            loadDoctorAvailability(selectedDoctor.id);
+        }
+    }
+};
+
+// Navigation between steps
+function nextStep() {
+    steps.next();
+}
+
+function prevStep() {
+    steps.prev();
+}
+
+
+// Generate available time slots for the next 14 days
+function generateAvailableSlots(doctorId) {
+    const slots = [];
+    const now = new Date();
+    const workStartHour = 9;  // 9 AM
+    const workEndHour = 17;   // 5 PM
+    const slotDuration = 30;  // minutes
+    const daysToGenerate = 14; // Show availability for 2 weeks
+    
+    // Generate slots for the next X days
+    for (let day = 0; day < daysToGenerate; day++) {
+        const currentDate = new Date();
+        currentDate.setDate(now.getDate() + day);
+        currentDate.setHours(0, 0, 0, 0);
+        
+        // Skip weekends (0 = Sunday, 6 = Saturday)
+        if (currentDate.getDay() === 0 || currentDate.getDay() === 6) continue;
+        
+        // Generate time slots for working hours
+        for (let hour = workStartHour; hour < workEndHour; hour++) {
+            for (let minute = 0; minute < 60; minute += slotDuration) {
+                const start = new Date(currentDate);
+                start.setHours(hour, minute, 0, 0);
+                
+                const end = new Date(start);
+                end.setMinutes(minute + slotDuration);
+                
+                // Only add slots that are at least 1 hour in the future
+                const nowPlusBuffer = new Date(now.getTime() + 60 * 60000);
+                if (start > nowPlusBuffer) {
+                    // Add some randomness to simulate real-world availability
+                    // In a real app, this would come from your backend
+                    if (Math.random() > 0.3) { // 70% chance a slot is available
+                        slots.push({
+                            id: `slot-${start.getTime()}`,
+                            title: 'Available',
+                            start: start,
+                            end: end,
+                            color: '#4CAF50',
+                            display: 'block',
+                            classNames: ['available-slot'],
+                            extendedProps: {
+                                available: true
+                            }
+                        });
+                    }
+                }
+            }
+        }
+    }
+    return slots;
+}
+
+// Load doctor's availability
+function loadDoctorAvailability(doctorId) {
+    if (!calendar) return;
+    
+    // Clear existing events
+    calendar.removeAllEvents();
+    
+    // Generate and add available slots
+    const availableSlots = generateAvailableSlots(doctorId);
+    availableSlots.forEach(slot => {
+        calendar.addEvent(slot);
+    });
+    
+    // Show message if no slots available
+    if (availableSlots.length === 0) {
+        alert('No available time slots found for the selected doctor.');
     }
     
-    // Initialize navigation
-    initNavigation();
+    // Ensure calendar is visible
+    document.getElementById('doctorCalendarContainer').style.display = 'block';
+}
+
+// Show doctor calendar with available slots
+function showDoctorCalendar(events) {
+    if (!calendar) return;
     
-    // Load profile data
-    loadProfileData();
+    calendar.removeAllEvents();
+    events.forEach(event => {
+        calendar.addEvent(event);
+    });
     
-    // Set up appointment booking only if the elements exist
-    if (document.getElementById('doctorSelect')) {
-        setupAppointmentBooking();
-        // Add debug call
-        debugFetchDoctors();
-    }
-    
-    // Load appointments if on view appointments section
-    if (document.getElementById('view-appointments-section')) {
-        loadAppointments();
-    }
+    document.getElementById('doctorCalendarContainer').style.display = 'block';
+}
+
+// Close confirmation popup
+function closeConfirmationPopup() {
+const popup = document.getElementById('appointmentConfirmationPopup');
+popup.style.opacity = '0';
+popup.style.transform = 'translateY(-20px)';
+setTimeout(() => {
+    popup.style.display = 'none';
+}, 300);
+}
+
+
+// Confirm appointment
+function confirmAppointment() {
+if (!selectedDoctor || !selectedSlot) {
+    alert('Please complete all steps before confirming.');
+    return;
+}
+}
+// Prepare appointment data
+const appointmentData = {
+    doctorId: selectedDoctor.id,
+    doctorName: selectedDoctor.name,
+    startTime: selectedSlot.start,
+    endTime: selectedSlot.end,
+    status: 'pending'
+};
+
+// Add to appointments table in View Appointments
+const tbody = document.getElementById('appointmentsBody');
+const tr = document.createElement('tr');
+tr.innerHTML = `
+    <td>${appointmentData.doctorName}</td>
+    <td>${appointmentData.startTime.toLocaleDateString('en-GB')}</td>
+    <td>${appointmentData.startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${appointmentData.endTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+    <td>${appointmentData.status}</td>
+    <td><button class="btn-cancel" onclick="this.closest('tr').remove()">Cancel</button></td>
+`;
+tbody.prepend(tr);
+
+// Switch to View Appointments section
+document.querySelectorAll('.dashboard-content').forEach(el => el.style.display = 'none');
+document.getElementById('view-appointments-section').style.display = 'block';
+
+// Reset the form for next booking
+resetForm();
+
+
+
+// Reset the form
+function resetForm() {
+// Reset to step 1
+document.querySelectorAll('.form-step').forEach(step => step.classList.remove('active'));
+document.getElementById('step1').classList.add('active');
+
+// Reset progress steps
+document.querySelectorAll('.step').forEach((step, index) => {
+    step.classList.toggle('active', index === 0);
 });
 
-});
+// Reset selections
+selectedDoctor = null;
+selectedSlot = null;
+document.getElementById('doctorSearch').value = '';
+document.getElementById('nextToStep2').disabled = true;
+document.getElementById('nextToStep3').disabled = true;
+document.querySelectorAll('.doctor-card').forEach(card => card.classList.remove('selected'));
 
-});
+// Clear calendar
+if (calendar) {
+    calendar.removeAllEvents();
+}
 
-});
+// Reload doctors
+loadDoctors();
+}
+
+
+// // Close view modal
+// function closeViewModal() {
+// const modal = document.getElementById('viewProfileModal');
+// modal.style.opacity = '0';
+// modal.style.transform = 'translateY(-20px)';
+// setTimeout(() => {
+//     modal.style.display = 'none';
+// }, 300);
+// }
+
+
+
+// // Initialize navigation between sections
+// // function initNavigation() {
+// //     const navLinks = document.querySelectorAll('.nav-links a[data-section]');
+// //     if (navLinks.length === 0) {
+// //         console.log('No navigation links found with data-section attribute');
+// //         return;
+// //     }
+    
+// //     const sections = document.querySelectorAll('[id$="-section"]');
+// //     if (sections.length === 0) {
+// //         console.log('No sections found with -section suffix');
+// //         return;
+// //     }
+    
+// //     navLinks.forEach(link => {
+// //         link.addEventListener('click', function(e) {
+// //             e.preventDefault();
+            
+// //             const targetSection = this.getAttribute('data-section');
+// //             console.log(`Navigating to section: ${targetSection}`);
+            
+// //             // Hide all sections
+// //             sections.forEach(section => {
+// //                 section.style.display = 'none';
+// //             });
+            
+// //             // Show target section
+// //             const targetElement = document.getElementById(targetSection + '-section');
+// //             if (targetElement) {
+// //                 targetElement.style.display = 'block';
+                
+// //                 // Load appointments when viewing that section
+// //                 if (targetSection === 'view-appointments') {
+// //                     loadAppointments();
+// //                 }
+// //             } else {
+// //                 console.error(`Target section not found: ${targetSection}-section`);
+// //             }
+            
+// //             // Update active link
+// //             navLinks.forEach(navLink => {
+// //                 navLink.parentElement.classList.remove('active');
+// //             });
+// //             this.parentElement.classList.add('active');
+// //         });
+// //     });
+// // }
+
+// // Load and display profile data
+// function loadProfileData() {
+//     showLoader('profileLoader');
+    
+//     fetch('/patient/profile', {
+//         method: 'GET',
+//         headers: {
+//             'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+//         }
+//     })
+//     .then(response => {
+//         if (response.status === 401) {
+//             // Unauthorized - token expired or invalid
+//             throw new Error('Unauthorized');
+//         }
+//         if (!response.ok) {
+//             throw new Error('Failed to fetch profile');
+//         }
+//         return response.json();
+//     })
+//     .then(data => {
+//         console.log("Profile data received:", data);
+//         hideLoader('profileLoader');
+        
+//         if (data.status === 'success') {
+//             // Update profile display in header
+//             const nameElements = document.querySelectorAll('#labDisplayName, #patientDisplayName');
+//             nameElements.forEach(el => {
+//                 if (el) el.textContent = data.data.fullname;
+//             });
+            
+//             // Update profile modal if it exists
+//             const viewFullNameElement = document.getElementById('viewFullName');
+//             if (viewFullNameElement) viewFullNameElement.textContent = data.data.fullname;
+            
+//             const viewEmailElement = document.getElementById('viewEmail');
+//             if (viewEmailElement) viewEmailElement.textContent = data.data.email;
+            
+//             const viewPhoneElement = document.getElementById('viewPhone');
+//             if (viewPhoneElement) viewPhoneElement.textContent = data.data.phone_number;
+            
+//             // Update additional profile fields if they exist
+//             const viewGenderElement = document.getElementById('viewGender');
+//             if (viewGenderElement && data.data.gender) {
+//                 viewGenderElement.textContent = data.data.gender.charAt(0).toUpperCase() + data.data.gender.slice(1);
+//             }
+            
+//             const viewBirthDateElement = document.getElementById('viewBirthDate');
+//             if (viewBirthDateElement && data.data.birth_date) {
+//                 const birthDate = new Date(data.data.birth_date);
+//                 viewBirthDateElement.textContent = birthDate.toLocaleDateString('en-US', {
+//                     year: 'numeric', month: 'long', day: 'numeric'
+//                 });
+//             }
+//         }
+//     })
+//     .catch(error => {
+//         hideLoader('profileLoader');
+//         console.error('Error loading profile:', error);
+        
+//         if (error.message === 'Unauthorized') {
+//             showAlert('error', 'Your session has expired. Please log in again.');
+//             logout();
+//         } else {
+//             showAlert('error', 'Failed to load profile. Please refresh the page.');
+//         }
+//     });
+// }
+
+
+
+// //     // Reset previous options and show loading state
+// //     timeSelect.innerHTML = '<option value="">Loading available times...</option>';
+// //     timeSelect.disabled = true;
+
+// //     console.log('Fetching available slots for doctor:', selectedDoctor.id, 'on', selectedDate);
+
+// //     // Get token from localStorage
+// //     const token = localStorage.getItem('access_token');
+// //     if (!token) {
+// //         console.error('No access token found');
+// //         timeSelect.innerHTML = '<option value="">-- Select a Time --</option>';
+// //         const errorOption = document.createElement('option');
+// //         errorOption.textContent = 'Please log in again';
+// //         errorOption.disabled = true;
+// //         timeSelect.appendChild(errorOption);
+// //         return;
+// //     }
+
+// //     // Use a direct API call to get time slots instead of the complex route
+// //     // This is a simplified approach to fix the immediate issue
+// //     fetch('/patient/apt/timeslots', {
+// //         method: 'POST',
+// //         headers: {
+// //             'Content-Type': 'application/json',
+// //             'Authorization': 'Bearer ' + token
+// //         },
+// //         body: JSON.stringify({
+// //             doctor_id: selectedDoctor.id,
+// //             date: selectedDate
+// //         })
+// //     })
+// //     .then(response => {
+// //         if (response.status === 401) {
+// //             throw new Error('Unauthorized');
+// //         }
+// //         if (!response.ok) {
+// //             throw new Error(`HTTP error! Status: ${response.status}`);
+// //         }
+// //         return response.json();
+// //     })
+// //     .then(data => {
+// //         console.log('Time slots received:', data);
+
+// //         // Reset time select
+// //         timeSelect.innerHTML = '<option value="">-- Select a Time --</option>';
+// //         timeSelect.disabled = false;
+
+// //         if (data.status === 'success' && data.slots && data.slots.length > 0) {
+// //             // Add time slots
+// //             data.slots.forEach(slot => {
+// //                 const option = document.createElement('option');
+// //                 option.value = slot;
+                
+// //                 // Format slot time to AM/PM
+// //                 const [hour, minute] = slot.split(':');
+// //                 const h = parseInt(hour);
+// //                 const ampm = h >= 12 ? 'PM' : 'AM';
+// //                 const displayHour = h % 12 || 12;
+// //                 option.textContent = `${displayHour}:${minute} ${ampm}`;
+                
+// //                 timeSelect.appendChild(option);
+// //             });
+// //         } else {
+// //             // If no slots returned or API doesn't work, generate some default slots
+// //             // This is a fallback to ensure something is displayed
+// //             generateDefaultTimeSlots(timeSelect, selectedDate);
+// //         }
+// //     })
+// //     .catch(error => {
+// //         console.error('Error loading time slots:', error);
+        
+// //         // Generate default time slots as a fallback
+// //         generateDefaultTimeSlots(timeSelect, selectedDate);
+        
+// //         if (error.message === 'Unauthorized') {
+// //             showAlert('error', 'Your session has expired. Please log in again.');
+// //             logout();
+// //         }
+// //     });
+
+// //     // Remove any existing event listeners to prevent duplicates
+// //     const newTimeSelect = timeSelect.cloneNode(true);
+// //     timeSelect.parentNode.replaceChild(newTimeSelect, timeSelect);
+    
+// //     // Add event listener to the new select element
+// //     newTimeSelect.addEventListener('change', function() {
+// //         if (this.value) {
+// //             selectedSlot = {
+// //                 date: selectedDate,
+// //                 time: this.value,
+// //                 display: this.options[this.selectedIndex].textContent
+// //             };
+
+// //             // Enable next button
+// //             const nextBtn = document.getElementById('nextToStep3');
+// //             if (nextBtn) nextBtn.disabled = false;
+// //         } else {
+// //             selectedSlot = null;
+            
+// //             // Disable next button
+// //             const nextBtn = document.getElementById('nextToStep3');
+// //             if (nextBtn) nextBtn.disabled = true;
+// //         }
+// //     });
+
+
+// // // Generate default time slots as a fallback
+// // function generateDefaultTimeSlots(timeSelect, selectedDate) {
+// //     // Clear existing options
+// //     timeSelect.innerHTML = '<option value="">-- Select a Time --</option>';
+// //     timeSelect.disabled = false;
+    
+// //     // Generate time slots from 9 AM to 5 PM in 30-minute intervals
+// //     const startHour = 9;
+// //     const endHour = 17;
+    
+// //     for (let hour = startHour; hour < endHour; hour++) {
+// //         for (let minute = 0; minute < 60; minute += 30) {
+// //             const timeValue = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+// //             const option = document.createElement('option');
+// //             option.value = timeValue;
+            
+// //             // Format for display (12-hour with AM/PM)
+// //             const h = hour % 12 || 12;
+// //             const ampm = hour >= 12 ? 'PM' : 'AM';
+// //             option.textContent = `${h}:${minute.toString().padStart(2, '0')} ${ampm}`;
+            
+// //             timeSelect.appendChild(option);
+// //         }
+// //     }
+    
+// //     // Show a warning that these are fallback slots
+// //     showAlert('warning', 'Using default time slots. Actual availability may differ.');
+// // }
+
+// // // Book appointment
+// // function bookAppointment() {
+// //     console.log('Booking appointment...');
+    
+// //     if (!selectedDoctor || !selectedSlot) {
+// //         showAlert('error', 'Please select a doctor and time slot');
+// //         return;
+// //     }
+    
+// //     // Disable confirm button to prevent double booking
+// //     const confirmBtn = document.getElementById('confirmBooking');
+// //     if (confirmBtn) {
+// //         confirmBtn.disabled = true;
+// //         confirmBtn.textContent = 'Booking...';
+// //     }
+    
+// //     // Format the appointment data according to what the backend expects
+// //     const appointmentData = {
+// //         doctor_id: selectedDoctor.id,
+// //         doctor_name: selectedDoctor.name,
+// //         medical_specialty: selectedDoctor.specialty,
+// //         date: selectedSlot.date,
+// //         time: selectedSlot.time
+// //     };
+    
+// //     console.log('Booking appointment with data:', appointmentData);
+    
+// //     fetch('/patient/apt/book', {
+// //         method: 'POST',
+// //         headers: {
+// //             'Content-Type': 'application/json',
+// //             'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+// //         },
+// //         body: JSON.stringify(appointmentData)
+// //     })
+// //     .then(response => {
+// //         if (response.status === 401) {
+// //             throw new Error('Unauthorized');
+// //         }
+// //         return response.json();
+// //     })
+// //     .then(data => {
+// //         console.log('Booking response:', data);
+        
+// //         // Re-enable confirm button
+// //         if (confirmBtn) {
+// //             confirmBtn.disabled = false;
+// //             confirmBtn.textContent = 'Confirm Booking';
+// //         }
+        
+// //         if (data.status === 'success') {
+// //             showAlert('success', data.message || 'Appointment booked successfully');
+            
+// //             // Reset form and selected values
+// //             selectedDoctor = null;
+// //             selectedSlot = null;
+            
+// //             // Reset the booking form UI
+// //             resetBookingForm();
+            
+// //             // Switch to view appointments section
+// //             const viewApptsLink = document.querySelector('a[data-section="view-appointments"]');
+// //             if (viewApptsLink) {
+// //                 viewApptsLink.click();
+// //             }
+// //         } else {
+// //             showAlert('error', data.message || 'Error booking appointment');
+// //         }
+// //     })
+// //     .catch(error => {
+// //         console.error('Error booking appointment:', error);
+        
+// //         // Re-enable confirm button
+// //         if (confirmBtn) {
+// //             confirmBtn.disabled = false;
+// //             confirmBtn.textContent = 'Confirm Booking';
+// //         }
+        
+// //         if (error.message === 'Unauthorized') {
+// //             showAlert('error', 'Your session has expired. Please log in again.');
+// //             logout();
+// //         } else {
+// //             showAlert('error', 'Failed to book appointment. Please try again.');
+// //         }
+// //     });
+// // }
+
+// // // Function to reset the booking form
+// // function resetBookingForm() {
+// //     // Reset doctor selection
+// //     const doctorSelect = document.getElementById('doctorSelect');
+// //     if (doctorSelect) {
+// //         doctorSelect.selectedIndex = 0;
+// //     }
+    
+// //     // Clear selected time slot
+// //     const timeSlots = document.querySelectorAll('.time-slot');
+// //     timeSlots.forEach(slot => {
+// //         slot.classList.remove('selected');
+// //     });
+    
+// //     // Reset to step 1
+// //     const steps = document.querySelectorAll('.booking-step');
+// //     steps.forEach(step => {
+// //         step.classList.remove('active');
+// //     });
+    
+// //     const step1 = document.getElementById('step1');
+// //     if (step1) {
+// //         step1.classList.add('active');
+// //     }
+    
+// //     // Reset progress indicator
+// //     updateProgressIndicator(1);
+    
+// //     // Reset global variables
+// //     selectedDoctor = null;
+// //     selectedSlot = null;
+// // }
+
+// // // Load appointments
+// // function loadAppointments() {
+// //     console.log('Loading appointments');
+// //     const appointmentsContainer = document.getElementById('appointments-container');
+// //     if (!appointmentsContainer) {
+// //         console.error('Appointments container not found');
+// //         return;
+// //     }
+    
+// //     // Show loading spinner
+// //     appointmentsContainer.innerHTML = `
+// //         <div class="text-center p-5">
+// //             <div class="spinner-border text-primary" role="status">
+// //                 <span class="visually-hidden">Loading...</span>
+// //             </div>
+// //             <p class="mt-2">Loading your appointments...</p>
+// //         </div>
+// //     `;
+    
+// //     fetch('/patient/apt/list', {
+// //         method: 'GET',
+// //         headers: {
+// //             'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+// //         }
+// //     })
+// //     .then(response => {
+// //         if (response.status === 401) {
+// //             throw new Error('Unauthorized');
+// //         }
+// //         if (!response.ok) {
+// //             throw new Error(`HTTP error! Status: ${response.status}`);
+// //         }
+// //         return response.json();
+// //     })
+// //     .then(data => {
+// //         console.log('Appointments data:', data);
+        
+// //         if (data.status === 'success' && data.appointments && data.appointments.length > 0) {
+// //             // Render appointments
+// //             let html = `
+// //                 <div class="table-responsive">
+// //                     <table class="table table-hover">
+// //                         <thead>
+// //                             <tr>
+// //                                 <th>Doctor</th>
+// //                                 <th>Specialty</th>
+// //                                 <th>Date</th>
+// //                                 <th>Time</th>
+// //                                 <th>Status</th>
+// //                                 <th>Actions</th>
+// //                             </tr>
+// //                         </thead>
+// //                         <tbody>
+// //             `;
+            
+// //             data.appointments.forEach(apt => {
+// //                 // Format date
+// //                 const date = new Date(apt.date);
+// //                 const formattedDate = date.toLocaleDateString('en-US', {
+// //                     year: 'numeric', month: 'long', day: 'numeric'
+// //                 });
+                
+// //                 // Format time
+// //                 const timeParts = apt.time.split(':');
+// //                 const hour = parseInt(timeParts[0]);
+// //                 const minute = timeParts[1];
+// //                 const ampm = hour >= 12 ? 'PM' : 'AM';
+// //                 const hour12 = hour % 12 || 12;
+// //                 const formattedTime = `${hour12}:${minute} ${ampm}`;
+                
+// //                 // Status badge class
+// //                 let statusClass = '';
+// //                 switch (apt.status.toLowerCase()) {
+// //                     case 'pending':
+// //                         statusClass = 'bg-warning text-dark';
+// //                         break;
+// //                     case 'confirmed':
+// //                         statusClass = 'bg-success';
+// //                         break;
+// //                     case 'completed':
+// //                         statusClass = 'bg-info';
+// //                         break;
+// //                     case 'cancelled':
+// //                         statusClass = 'bg-danger';
+// //                         break;
+// //                     default:
+// //                         statusClass = 'bg-secondary';
+// //                 }
+                
+// //                 // Cancel button (only show for pending or confirmed appointments)
+// //                 const cancelButton = (apt.status.toLowerCase() === 'pending' || apt.status.toLowerCase() === 'confirmed') 
+// //                     ? `<button class="btn btn-sm btn-outline-danger cancel-apt" data-apt-id="${apt.id}">Cancel</button>` 
+// //                     : '';
+                
+// //                 html += `
+// //                     <tr>
+// //                         <td>${apt.doctor_name}</td>
+// //                         <td>${apt.doctor_specialty}</td>
+// //                         <td>${formattedDate}</td>
+// //                         <td>${formattedTime}</td>
+// //                         <td><span class="badge ${statusClass}">${apt.status}</span></td>
+// //                         <td>${cancelButton}</td>
+// //                     </tr>
+// //                 `;
+// //             });
+            
+// //             html += `
+// //                         </tbody>
+// //                     </table>
+// //                 </div>
+// //             `;
+            
+// //             appointmentsContainer.innerHTML = html;
+            
+// //             // Add event listeners to cancel buttons
+// //             const cancelButtons = document.querySelectorAll('.cancel-apt');
+// //             cancelButtons.forEach(btn => {
+// //                 btn.addEventListener('click', function() {
+// //                     const aptId = this.getAttribute('data-apt-id');
+// //                     cancelAppointment(aptId);
+// //                 });
+// //             });
+// //         } else {
+// //             // No appointments
+// //             appointmentsContainer.innerHTML = `
+// //                 <div class="text-center p-5">
+// //                     <div class="alert alert-info">
+// //                         <i class="fas fa-info-circle me-2"></i>
+// //                         You don't have any appointments yet.
+// //                     </div>
+// //                     <button class="btn btn-primary mt-3" id="bookNewAppointmentBtn">
+// //                         <i class="fas fa-calendar-plus me-2"></i>
+// //                         Book an Appointment
+// //                     </button>
+// //                 </div>
+// //             `;
+            
+// //             // Add event listener to book button
+// //             const bookBtn = document.getElementById('bookNewAppointmentBtn');
+// //             if (bookBtn) {
+// //                 bookBtn.addEventListener('click', function() {
+// //                     // Navigate to book appointment section
+// //                     const bookLink = document.querySelector('a[data-section="book-appointment"]');
+// //                     if (bookLink) {
+// //                         bookLink.click();
+// //                     }
+// //                 });
+// //             }
+// //         }
+// //     })
+// //     .catch(error => {
+// //         console.error('Error loading appointments:', error);
+        
+// //         appointmentsContainer.innerHTML = `
+// //             <div class="alert alert-danger">
+// //                 <i class="fas fa-exclamation-triangle me-2"></i>
+// //                 Failed to load appointments. ${error.message}
+// //             </div>
+// //             <button class="btn btn-primary mt-3" id="retryLoadAppointmentsBtn">
+// //                 <i class="fas fa-sync me-2"></i>
+// //                 Retry
+// //             </button>
+// //         `;
+        
+// //         // Add event listener to retry button
+// //         const retryBtn = document.getElementById('retryLoadAppointmentsBtn');
+// //         if (retryBtn) {
+// //             retryBtn.addEventListener('click', loadAppointments);
+// //         }
+        
+// //         if (error.message === 'Unauthorized') {
+// //             showAlert('error', 'Your session has expired. Please log in again.');
+// //             logout();
+// //         }
+// //     });
+// // }
+
+// // // Cancel appointment
+// // function cancelAppointment(appointmentId) {
+// //     if (!confirm('Are you sure you want to cancel this appointment?')) {
+// //         return;
+// //     }
+    
+// //     fetch(`/patient/apt/cancel/${appointmentId}`, {
+// //         method: 'POST',
+// //         headers: {
+// //             'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+// //         }
+// //     })
+// //     .then(response => {
+// //         if (response.status === 401) {
+// //             throw new Error('Unauthorized');
+// //         }
+// //         if (!response.ok) {
+// //             throw new Error(`HTTP error! Status: ${response.status}`);
+// //         }
+// //         return response.json();
+// //     })
+// //     .then(data => {
+// //         console.log('Cancel response:', data);
+        
+// //         if (data.status === 'success') {
+// //             showAlert('success', 'Appointment cancelled successfully');
+// //             // Reload appointments
+// //             loadAppointments();
+// //         } else {
+// //             showAlert('error', data.message || 'Failed to cancel appointment');
+// //         }
+// //     })
+// //     .catch(error => {
+// //         console.error('Error cancelling appointment:', error);
+        
+// //         if (error.message === 'Unauthorized') {
+// //             showAlert('error', 'Your session has expired. Please log in again.');
+// //             logout();
+// //         } else {
+// //             showAlert('error', 'Failed to cancel appointment. Please try again.');
+// //         }
+// //     });
+// // }
+
+// // // Close view modal
+// // function closeViewModal() {
+// // const modal = document.getElementById('viewProfileModal');
+// // modal.style.opacity = '0';
+// // modal.style.transform = 'translateY(-20px)';
+// // setTimeout(() => {
+// //     modal.style.display = 'none';
+// // }, 300);
+// // }
+
+// // // Book appointment - Step 3 confirmation button
+// // document.getElementById('confirmBooking').addEventListener('click', function() {
+// //     // Get selected doctor and time slot from the form
+// //     const appointmentData = {
+// //         doctor_name: selectedDoctor.name,
+// //         medical_specialty: selectedDoctor.specialty,
+// //         date: selectedSlot.start.toISOString().split('T')[0],
+// //         time: selectedSlot.start.toTimeString().substring(0, 5)
+// //     };
+
+// //     // Call the API to book the appointment
+// //     fetch('/patient/apt/book', {
+// //         method: 'POST',
+// //         headers: {
+// //             'Content-Type': 'application/json',
+// //             'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+// //         },
+// //         body: JSON.stringify(appointmentData)
+// //     })
+// //     .then(response => response.json())
+// //     .then(data => {
+// //         if (data.status === 'success') {
+// //             alert(data.message);
+// //             resetForm();
+// //             // Switch to View Appointments section
+// //             document.querySelector('a[data-section="view-appointments"]').click();
+// //             loadAppointments(); // Refresh appointments list
+// //         } else {
+// //             alert('Error: ' + data.message);
+// //         }
+// //     })
+// //     .catch(error => {
+// //         console.error('Error booking appointment:', error);
+// //         alert('Failed to book appointment. Please try again.');
+// //     });
+// // });
+
+// // Function to load appointments
+// // f

@@ -117,7 +117,7 @@
         <br><br>
     </div>
 
-    <!-- Book Appointment Section -->
+    <!-- Book Appointments Section -->
     <div class="dashboard-content" id="book-appointments-section" style="display: none;">
         <div class="section-header">
             <h2>Book New Appointment</h2>
@@ -125,99 +125,88 @@
         
         <!-- Progress Steps -->
         <div class="progress-steps">
-            <div class="step active">
-                <div class="step-circle">1</div>
+            <div class="step active" data-step="1">
+                <div class="step-number">1</div>
                 <div class="step-text">Select a Doctor</div>
             </div>
-            <div class="step">
-                <div class="step-circle">2</div>
+            <div class="step" data-step="2">
+                <div class="step-number">2</div>
                 <div class="step-text">Select Date and Time</div>
             </div>
-            <div class="step">
-                <div class="step-circle">3</div>
+            <div class="step" data-step="3">
+                <div class="step-number">3</div>
                 <div class="step-text">Confirm Details</div>
             </div>
         </div>
-        
-        <!-- Appointment Form -->
+
         <div class="appointment-form-container">
-            <!-- Step 1: Select Doctor -->
-            <div class="form-step active" id="step1">
+            <!-- Step 1: Choose Doctor -->
+            <div id="step1" class="form-step active">
                 <h3>Select a Doctor</h3>
-                <p>Choose a doctor for your appointment</p>
-                
                 <div class="form-group">
-                    <select id="doctorSelect" class="form-control">
+                    <label for="doctorSelect">Choose a Doctor</label>
+                    <select id="doctorSelect" class="form-control" data-step="1">
                         <option value="">-- Select a Doctor --</option>
-                        <!-- Doctor options will be loaded dynamically -->
+                        <!-- Doctors will be loaded here -->
                     </select>
                 </div>
-                
+
                 <div class="step-actions">
-                    <button id="nextToStep2" class="btn-next" disabled>
+                    <button type="button" class="btn-next" id="nextToStep2" disabled>
                         Next <i class="fas fa-arrow-right"></i>
                     </button>
+                    <!-- JS: When doctor is selected, enable this button. On click, show available dates/times for selected doctor in Step 2. -->
                 </div>
             </div>
-            
-            <!-- Step 2: Select Date and Time -->
-            <div class="form-step" id="step2">
-                <h3>Select Available Time</h3>
-                <p id="doctorNameDisplay">Choose a convenient time for your appointment</p>
-                
-                <div class="form-group">
-                    <label for="appointmentDate">Date</label>
-                    <input type="date" id="appointmentDate" class="form-control" required>
+
+            <!-- Step 2: Select Time -->
+            <div id="step2" class="form-step">
+    <h3>Select Available Time</h3>
+    <p>Choose a convenient time for your appointment with <span id="selectedDoctorName"></span></p>
+    <div class="form-group">
+        <label for="availableDate">Date</label>
+        <input type="date" id="availableDate" class="form-control" disabled />
+    </div>
+    <div class="form-group">
+        <label for="availableTime">Time</label>
+        <select id="availableTime" class="form-control" disabled>
+            <option value="">-- Select a Time --</option>
+        </select>
+    </div>
+    <div class="step-actions">
+        <button type="button" class="btn-back" onclick="prevStep(1)">
+            <i class="fas fa-arrow-left"></i> Back
+        </button>
+        <button type="button" class="btn-next" id="nextToStep3" disabled>
+            Next <i class="fas fa-arrow-right"></i>
+        </button>
+    </div>
+</div>
+
+
+            <!-- Step 3: Confirm -->
+            <div id="step3" class="form-step">
+                <h3>Confirm Your Appointment</h3>
+                <div class="appointment-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">Doctor:</span>
+                        <span id="confirmDoctorName"></span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Date:</span>
+                        <span id="confirmDate"></span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Time:</span>
+                        <span id="confirmTime"></span>
+                    </div>
                 </div>
-                
-                <div class="form-group">
-                    <label for="appointmentTime">Time</label>
-                    <select id="appointmentTime" class="form-control" required>
-                        <option value="">-- Select a Time --</option>
-                        <!-- Time slots will be loaded dynamically -->
-                    </select>
-                </div>
-                
                 <div class="step-actions">
-                    <button id="backToStep1" class="btn-back">
+                    <button type="button" class="btn-back" onclick="prevStep(2)">
                         <i class="fas fa-arrow-left"></i> Back
                     </button>
-                    <button id="nextToStep3" class="btn-next" disabled>
-                        Next <i class="fas fa-arrow-right"></i>
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Step 3: Confirm Details -->
-            <div class="form-step" id="step3">
-                <h3>Confirm Details</h3>
-                <p>Please review your appointment details</p>
-                
-                <div class="confirmation-details">
-                    <div class="detail-item">
-                        <span class="detail-label">Doctor:</span>
-                        <span id="confirmDoctorName" class="detail-value"></span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Specialty:</span>
-                        <span id="confirmSpecialty" class="detail-value"></span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Date:</span>
-                        <span id="confirmDate" class="detail-value"></span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Time:</span>
-                        <span id="confirmTime" class="detail-value"></span>
-                    </div>
-                </div>
-                
-                <div class="step-actions">
-                    <button id="backToStep2" class="btn-back">
-                        <i class="fas fa-arrow-left"></i> Back
-                    </button>
-                    <button id="confirmBooking" class="btn-confirm">
-                        Confirm Booking
+                    <button type="button" class="btn-confirm" onclick="saveAndShowAppointment()">
+                        <i class="fas fa-calendar-check"></i> Confirm Appointment
                     </button>
                 </div>
             </div>
@@ -225,6 +214,27 @@
     </div>
 
     <!-- View Appointments Section -->
+    <div class="dashboard-content" id="view-appointments-section" style="display: none;">
+        <div class="section-header">
+            <h2>Your Appointments</h2>
+        </div>
+        <div class="appointments-table-container">
+            <table class="appointments-table">
+                <thead>
+                    <tr>
+                        <th>Doctor</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="appointmentsTableBody">
+                    <!-- Appointments will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
     <div class="dashboard-content" id="view-appointments-section" style="display: none;">
         <div class="section-header">
             <h2>Your Appointments</h2>
@@ -319,101 +329,5 @@
 
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
 
-    <script>
-        // Add this function to fetch and display profile data
-        function loadProfileData() {
-            const token = localStorage.getItem('access_token');
-            if (!token) {
-                window.location.href = "/patient/login";
-                return;
-            }
-            
-            fetch('/patient/profile', {
-                method: 'GET',
-                headers: {
-                    'Authorization': 'Bearer ' + token
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to fetch profile');
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log("Profile data received:", data); // Debug log
-                if (data.status === 'success') {
-                    // Update profile display
-                    document.getElementById('labDisplayName').textContent = data.data.fullname;
-                    document.getElementById('patientDisplayName').textContent = data.data.fullname;
-                    
-                    // Update profile modal if it exists
-                    const viewFullNameElement = document.getElementById('viewFullName');
-                    if (viewFullNameElement) viewFullNameElement.textContent = data.data.fullname;
-                    
-                    const viewEmailElement = document.getElementById('viewEmail');
-                    if (viewEmailElement) viewEmailElement.textContent = data.data.email;
-                    
-                    const viewPhoneElement = document.getElementById('viewPhone');
-                    if (viewPhoneElement) viewPhoneElement.textContent = data.data.phone_number;
-                    
-                    // Add birth date and gender
-                    const viewBirthDateElement = document.getElementById('viewBirthDate');
-                    if (viewBirthDateElement) {
-                        // Format the date for better display
-                        const birthDate = new Date(data.data.birth_date);
-                        const formattedDate = birthDate.toLocaleDateString('en-US', {
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric'
-                        });
-                        viewBirthDateElement.textContent = formattedDate;
-                    }
-                    
-                    const viewGenderElement = document.getElementById('viewGender');
-                    if (viewGenderElement) {
-                        // Capitalize first letter of gender
-                        const gender = data.data.gender.charAt(0).toUpperCase() + data.data.gender.slice(1);
-                        viewGenderElement.textContent = gender;
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error loading profile:', error);
-            });
-        }
 
-        // Call this function when the page loads
-        document.addEventListener('DOMContentLoaded', loadProfileData);
-
-        function logout(event) {
-            if (event) {
-                event.preventDefault(); // Prevent default link behavior
-            }
-            
-            console.log("Logout function called"); // Debug log
-            
-            // Clear the JWT token from localStorage
-            localStorage.removeItem("access_token");
-            localStorage.removeItem("user_type");
-            
-            // Redirect to the patient login page directly
-            window.location.href = "/patient/login";
-        }
-
-        // Make sure profile dropdown toggle works
-        function toggleProfileDropdown(event) {
-            event.stopPropagation();
-            const dropdown = document.querySelector('.profile-dropdown');
-            dropdown.classList.toggle('active');
-        }
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            const dropdown = document.querySelector('.profile-dropdown');
-            if (dropdown && !event.target.closest('.user-profile-wrapper')) {
-                dropdown.classList.remove('active');
-            }
-        });
-    </script>
 </html>

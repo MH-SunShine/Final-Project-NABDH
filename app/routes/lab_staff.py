@@ -4,8 +4,11 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from app import db
 from app.models.lab_staff import LabStaff
 from app.models.pending_verification import PendingVerification
-from datetime import timedelta
+from datetime import timedelta, datetime
+from app.models.test_result import TestResult
+from app.models.ai_analysis import AIAnalysis
 import logging
+import requests
 
 lab_staff_bp = Blueprint('lab_staff_bp', __name__, url_prefix='/lab')
 
@@ -159,3 +162,120 @@ def get_lab_profile():
 
     # 6. Return it as JSON
     return jsonify(response), 200
+
+
+@lab_staff_bp.route('/test/import', methods=['POST'])
+@jwt_required()
+def import_test_result():
+    try:
+        lab_staff_id = get_jwt_identity()
+        
+        # Get form data
+        test_request_id = request.form.get('test_request_id')
+        if not test_request_id:
+            return jsonify({'error': 'Test request ID is required'}), 400
+            
+        # Check if file was uploaded
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+            
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+            
+        # Read file content
+        file_content = file.read().decode('utf-8', errors='ignore')
+        
+        # Create new test result
+        new_result = TestResult(
+            test_request_id=int(test_request_id),
+            lab_staff_id=int(lab_staff_id),
+            result_data=file_content,  # Store the file content in the database
+            submitted_at=datetime.utcnow()
+        )
+        
+        # Save to database
+        db.session.add(new_result)
+        db.session.commit()
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Test results imported successfully',
+            'result_id': new_result.id
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f'Error importing test results: {str(e)}')
+        return jsonify({'error': str(e)}), 500
+
+
+@lab_staff_bp.route('/lab/test/ai_analysis', methods=['GET'])
+def analyze_test_result():
+    test_request_id = request.args.get('test_request_id')
+
+    if not test_request_id:
+        return jsonify({"error": "Missing test_request_id"}), 400
+
+    result = TestResult.query.filter_by(test_request_id=test_request_id).first()
+    if not result:
+        return jsonify({"error": "Test result not found"}), 404
+
+    content = result.result_data
+
+    prompt = f"""
+You are a medical assistant. A lab staff has submitted the following test result:
+---
+{content}
+---
+Analyze the result and answer these:
+
+1.  What are the abnormal markers and what do they mean?
+2.  What might the patient have (possible diagnosis)?
+3.  What follow-up tests do you recommend?
+4.  Medical recommendations or actions?
+
+Respond clearly and concisely in this format:
+- Abnormal Markers:
+- Diagnosis:
+- Recommended Tests:
+- Medical Advice:
+"""
+
+    try:
+        # request to OpenRouter API
+        headers = {
+            "Authorization": "Bearer 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",
+            "Content-Type": "application/json"
+        }
+
+        body = {
+            "model": "openai/gpt-3.5-turbo",
+            "messages": [
+                {"role": "system", "content": "You are a helpful medical assistant."},
+                {"role": "user", "content": prompt}
+            ]
+        }
+
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", json=body, headers=headers)
+        response.raise_for_status()
+
+        data = response.json()
+        ai_output = data['choices'][0]['message']['content']
+
+        new_analysis = AIAnalysis(
+            test_result_id=result.id,
+            analysis_result=ai_output,
+            created_at=datetime.utcnow()
+        )
+        db.session.add(new_analysis)
+        db.session.commit()
+
+        return jsonify({
+            "test_request_id": test_request_id,
+            "analysis_result": ai_output
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
