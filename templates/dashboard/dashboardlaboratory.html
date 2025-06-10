@@ -169,35 +169,9 @@
                 <tbody id="pendingTestsTableBody">
                     <tr>
                         <td>#001</td>
-                        <td>Bennaceur douaa</td>
-                        <td>Blood Test</td>
-                        <td>2025-03-15</td>
-                        <td><span class="status-badge waiting">pending</span></td>
-                        <td>
-                            <button class="action-btn import-btn" onclick="openImportPopup(this)">
-                                <i class="fas fa-file-import"></i>
-                                Import Result
-                            </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>#002</td>
                         <td>hamammouche Marwa</td>
                         <td>Analysis</td>
                         <td>2025-03-14</td>
-                        <td><span class="status-badge waiting">pending</span></td>
-                        <td>
-                            <button class="action-btn import-btn" onclick="openImportPopup(this)">
-                                <i class="fas fa-file-import"></i>
-                                Import Result
-                            </button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>#003</td>
-                        <td>MARWA douaa</td>
-                        <td>TCH</td>
-                        <td>2025-03-13</td>
                         <td><span class="status-badge waiting">pending</span></td>
                         <td>
                             <button class="action-btn import-btn" onclick="openImportPopup(this)">
@@ -249,21 +223,8 @@
                             <span class="status-badge completed">Completed</span> 
                         </td>
                         <td>
-                           <button id="aiBtn" class="action-btn import-btn aiBtn"><i class="fas fa-robot"></i>IA</button>
+                           <button id="aiBtn" class="action-btn import-btn aiBtn" ><i class="fas fa-robot" ></i>IA</button>
                         </td>
-                    </tr>
-                    <tr>
-                        <td>#005</td>
-                        <td>ddd mmm</td>
-                        <td>Analysis</td>
-                        <td>2025-03-11</td>
-                        <td>
-                            <span class="status-badge completed">Completed</span> 
-                        </td>
-                        <td>
-                           <button id="aiBtn" class="action-btn import-btn aiBtn"><i class="fas fa-robot"></i>IA</button>
-                        </td>
-                        
                     </tr>
                 </tbody>
             </table>
@@ -360,13 +321,22 @@
     <!-- ai modal -->
     <div class="modal" id="aiModal" style="display: none;" >
         <div style="background: white; width: 90%; max-width: 500px; margin: 50px auto; padding: 20px; border-radius: 8px; position: relative; transform: translateY(-20px); transition: transform 0.3s ease;">
+            <!-- Progress Bar Container -->
+            <div id="progressContainer" style="display: none; margin: 20px 0;">
+                <div class="progress-bar">
+                    <div id="progress" style="width: 0%; height: 10px; background: #1a73e8; border-radius: 5px; transition: width 0.2s ease;"></div>
+                </div>
+            </div>
             <span onclick="closeAiModal()" style="position: absolute; right: 20px; top: 10px; font-size: 24px; cursor: pointer; color: #666;">&times;</span>
             <h2 style="margin-bottom: 20px; color: #1a73e8; text-align: center;">
                 <i class="fas fa-robot"></i> AI Assistant
             </h2>
-            <div id="aiMessages" class="message"></div>
             <div class="ai-content">
-                <!-- <p>AI Analysis</p> -->
+                <div id="progressContainer" style="display: none; margin-bottom: 20px;">
+                    <div class="progress-bar" style="width: 100%; height: 10px; background: #f1f3f4; border-radius: 5px; overflow: hidden;">
+                        <div id="progress" style="width: 0%; height: 100%; background: #0A4D68; transition: width 0.5s ease;"></div>
+                    </div>
+                </div>
                 <textarea id="aiInput" placeholder="Ask a question..." style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 4px; margin-bottom: 20px;"></textarea>
                 <button onclick="sendAiMessage()" style="padding: 10px 20px; background: #0A4D68; color: white; border: none; border-radius: 4px; cursor: pointer;">Run</button>
             </div>

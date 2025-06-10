@@ -141,13 +141,13 @@
 
 
 // Signup form validation and submission
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
     const signupForm = document.getElementById('signup-form');
-
+    
     if (signupForm) {
-        signupForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-
+        signupForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
             try {
                 // Validate passwords match
                 const password = document.getElementById('password').value;
@@ -167,29 +167,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                // Basic required field check
-                if (!formData.fullname) {
-                    alert('Full name is required.');
-                    return;
-                }
-                if (!formData.phone_number) {
-                    alert('Phone number is required.');
-                    return;
-                }
-
                 // Determine the endpoint based on the current URL
                 const currentPath = window.location.pathname.toLowerCase();
                 let signupEndpoint = '';
 
                 if (currentPath.includes('/doctor')) {
                     signupEndpoint = '/doctor/signup';
+                    // Check doctor-specific required fields
+                    if (!formData.medical_specialty) {
+                        alert('Medical specialty is required.');
+                        return;
+                    }
                 } else if (currentPath.includes('/lab')) {
                     signupEndpoint = '/lab/signup';
+                    // Check lab-specific required fields
+                    if (!formData.lab_name) {
+                        alert('Laboratory name is required.');
+                        return;
+                    }
+                    if (!formData.address) {
+                        alert('Address is required.');
+                        return;
+                    }
                 } else if (currentPath.includes('/patient')) {
                     signupEndpoint = '/patient/signup';
-                } else {
-                    alert('Unknown signup type. URL must include /doctor, /lab or /patient.');
-                    return;
                 }
 
                 // Send signup request
@@ -204,9 +205,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Show success modal instead of the previous approach
-                    const successModal = new bootstrap.Modal(document.getElementById('signupSuccessModal'));
-                    successModal.show();
+                    // Show success message without using Bootstrap Modal
+                    const signupSuccess = document.getElementById('signupSuccess');
+                    if (signupSuccess) {
+                        signupSuccess.style.display = 'block';
+                        // Hide the form
+                        signupForm.style.display = 'none';
+                        
+                        // Scroll to success message
+                        signupSuccess.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                        alert('Signup successful! Your request has been submitted for approval.');
+                    }
                     
                     // Reset the form
                     signupForm.reset();

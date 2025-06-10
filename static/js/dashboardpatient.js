@@ -173,21 +173,12 @@ function cancelAppointment(appointmentTime) {
 const doctors = [
     { 
         id: 1, 
-        name: 'Dr. amira', 
-        specialty: 'Cardiologist', 
+        name: 'ameur mohamed', 
+        specialty: 'generale medecine', 
         available: true,
-        email: "a@example.com",
-        phone: "+213"
-    },
-    { 
-        id: 2, 
-        name: 'Dr. fatima', 
-        specialty: 'Neurologist', 
-        available: true,
-        email: "a@example.com",
-        phone: "+213"
-    },
-
+        email: "mohamed@gmail.com",
+        phone: "0765439843"
+    }
 ];
 
 // Initialize the form when the page loads
