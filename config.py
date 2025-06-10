@@ -1,5 +1,5 @@
 class Config:
-    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:mimidb777@localhost:5432/Nabdh'
+    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:mimidb777@localhost:5432/NabdhDB'
     SECRET_KEY = '63271834246517ea47cc4fe336e44338'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_SECRET_KEY = '1AQOSbANsF4A-T2RAWitZqhmYHuoIcya_mUak1-xSECH9VEXDXLj6_6EDAmLJfRqDaKG2FCHA9KoaYhyVhUrIA'
