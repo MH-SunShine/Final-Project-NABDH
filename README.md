@@ -17,35 +17,19 @@ Nabdh is an AI-driven web platform that connects patients, doctors, and laborato
 6 RESTful API built with Flask backend
 
 7 PostgreSQL relational database
-
-🏗️ System Architecture
-Here is a simplified architecture of the Nabdh platform:
-     ┌─────────────┐
-     │  Frontend   │
-     │ (HTML, JS)  │
-     └────┬────────┘
-          │
-          ▼
-    ┌────────────┐
-    │   Backend  │  Flask
-    │ (run.py)   │
-    └────┬───────┘
-         │
-┌─────────┴─────────┐
-│                   │
-▼                   ▼
-PostgreSQL     AI Engine Module
-Database      (Apriori + LLM Integration)
-
+          
 Note: The app was deployed on Vercel but is currently running locally only.
 
+
 📦 Tech Stack
+
 Frontend	 -->   HTML, Bootstrap, JS
 Backend	   -->   Python, Flask
 Database	 -->   PostgreSQL
 AI Module	 -->   Apriori Algorithm + LLM (meta-llama/llama-3.3-8b-instruct:free)
 Auth	     -->   JWT (JSON Web Tokens)
 Hosting	   -->   Vercel (inactive)
+
 
 ⚙️ Getting Started
 
@@ -59,7 +43,9 @@ pip install -r requirements.txt
 3 Run the Flask backend:
 python run.py
 
+
 (Frontend runs via static HTML files in the templates directory)
+
 
 🔐 Authentication
 
@@ -68,6 +54,7 @@ JWT-based login system
 Three user roles: Patient, Doctor, Laboratory
 
 Protected routes using Flask decorators
+
 
 🧠 AI Module
 
@@ -83,15 +70,18 @@ Passes filtered rules to the LLM in order to:
 
 - Suggest follow-up tests and medical advice
 
+
 🧪 Testing
 
 - No formal unit testing framework used. The system was tested manually using:
 - Postman for API endpoints
 - Frontend integration in browser
 
+
 ⚠️ Note
 
 The backend is still under active development. Several endpoints and features are being modified and improved for performance, security, and functionality. Final integration is in progress.
+
 
 👨‍💻 Authors
 
