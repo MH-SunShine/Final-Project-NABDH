@@ -23,12 +23,12 @@ Note: The app was deployed on Vercel but is currently running locally only.
 
 📦 Tech Stack
 
-Frontend	 -->   HTML, Bootstrap, JS
-Backend	   -->   Python, Flask
-Database	 -->   PostgreSQL
-AI Module	 -->   Apriori Algorithm + LLM (meta-llama/llama-3.3-8b-instruct:free)
-Auth	     -->   JWT (JSON Web Tokens)
-Hosting	   -->   Vercel (inactive)
+Fronten:   HTML, Bootstrap, JS
+Backend:   Python, Flask
+Database:   PostgreSQL
+AI Module:   Apriori Algorithm + LLM (meta-llama/llama-3.3-8b-instruct:free)
+Auth:   JWT (JSON Web Tokens)
+Hosting:   Vercel (inactive)
 
 
 ⚙️ Getting Started
