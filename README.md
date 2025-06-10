@@ -1,4 +1,4 @@
-Nabdh – AI-Powered Healthcare Platform
+# Nabdh – AI-Powered Healthcare Platform
 
 Nabdh is an AI-driven web platform that connects patients, doctors, and laboratories to streamline medical analysis, automate appointment bookings, and generate intelligent health recommendations using association rule mining and language models.
 
